@@ -160,11 +160,10 @@ module system_top (
 //    .trig_level_b ({2'b00, 16'h1000} ), // >
 
     .trig_reset(!gpio_o[9]), // First LED
-    .trig_level_add(gpio_o[12:11]),
-    .trig_level(gpio_o[55:40]),
-    //.trig_level_a (gpio_trigg_lvl), // {2'b11, 16'h0FE0} < 18'h02000 / 18'd8192 = -200mV 18'h03000 = -320mV
-    //.trig_level_b (gpio_trigg_lvl), // > {2'b00, 16'h0200}
-//    .trig_level_b ({2'b11, 16'h8000} ),  //,-2048
+    .trig_level_addr(gpio_o[12:11]),
+    .trig_level_data(gpio_o[55:40]),
+    .trig_level_wrt(gpio_o[13]),
+    .pulse_delay(gpio_i[55:40]), // O 
 
     .trigger0 (user_sma_clk_n), // user_sma_clk_p
     .trigger1 (user_sma_gpio_n) //J14
@@ -183,7 +182,9 @@ module system_top (
     .dio_o (gpio_i[16:0]),
     .dio_p (gpio_bd));
 
-  assign gpio_i[63:32] = gpio_o[63:32];
+//  assign gpio_i[63:32] = gpio_o[63:32];
+  assign gpio_i[39:32] = gpio_o[39:32]; // LInes 55:40 are reading pulse delay
+  assign gpio_i[63:56] = gpio_o[63:56];
   assign gpio_i[31:17] = gpio_o[31:17];
 
   fmcjesdadc1_spi i_fmcjesdadc1_spi (

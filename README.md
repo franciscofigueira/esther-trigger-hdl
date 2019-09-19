@@ -19,7 +19,15 @@ project that you want to build
  [~]git clone https://github.com/bernardocarvalho/esther-trigger-hdl
 ```
 
-Open project in Vivado and run
+Open project in Vivado and 
 
 * From  TCL console run
+ ```
 source ./esther-trigger-hdl/system_bd_esther.tcl
+ ```
+ * Select system_bd file and "Generate Output Product"
+ * Create HDL wrapper (Let Vivado manage created wrapper)
+ * Replace file system_top.v with esther-trigger-hdl/str/hdl
+ * Add trigger_gen.v and kc705_sma_constr.xdc
+
+

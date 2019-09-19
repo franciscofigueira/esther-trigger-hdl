@@ -44,7 +44,7 @@
 
 
 module trigger_gen #(
-  parameter     ADC_DATA_WIDTH = 16)
+  parameter     ADC_DATA_WIDTH = 16)  // ADC is 14 bit, but data is 16
   (
     input adc_clk,
     input [31:0] adc_data_a,
@@ -60,50 +60,51 @@ module trigger_gen #(
     input adc_enable_d,
     
     input trig_reset,
-    input  [1:0]   trig_level_add,
-    input signed [15:0]   trig_level,
+    input  [1:0]   trig_level_addr,
+    input  trig_level_wrt,
+    input signed [15:0]   trig_level_data,
     //input signed [13:0]   trig_level_a,
     //input signed [13:0]   trig_level_b,
-    
+    output reg [15:0]  pulse_delay,
     output trigger0,
     output trigger1
     );
 /*********** Function Declarations ***************/
 
-function signed [ADC_DATA_WIDTH +1:0] adc_channel_mean_f;
+function signed [ADC_DATA_WIDTH:0] adc_channel_mean_f;  // 17 bit for headroom
 	 input [ADC_DATA_WIDTH-1:0] adc_data_first;
 	 input [ADC_DATA_WIDTH-1:0] adc_data_second;
 	 
-     reg signed [ADC_DATA_WIDTH +1:0] adc_ext_1st; 
-     reg signed [ADC_DATA_WIDTH +1:0] adc_ext_2nd; 
+     reg signed [ADC_DATA_WIDTH:0] adc_ext_1st; 
+     reg signed [ADC_DATA_WIDTH:0] adc_ext_2nd; 
 	   begin 	
-            adc_ext_1st = $signed({{2{adc_data_first[ADC_DATA_WIDTH-1]}}, adc_data_first}); // sign extend
-            adc_ext_2nd = $signed({{2{adc_data_second[ADC_DATA_WIDTH-1]}}, adc_data_second}); 
+            adc_ext_1st = $signed({adc_data_first[ADC_DATA_WIDTH-1], adc_data_first}); // sign extend
+            adc_ext_2nd = $signed({adc_data_second[ADC_DATA_WIDTH-1], adc_data_second}); 
             adc_channel_mean_f = adc_ext_1st + adc_ext_2nd;
 	  end 
   endfunction
 
-function  gratter_eval_f;
-	input signed [ADC_DATA_WIDTH +1:0] adc_channel_mean;
-	input signed [ADC_DATA_WIDTH - 1:0] trig_lvl;
+function  trigger_rising_eval_f;
+	input signed [ADC_DATA_WIDTH:0] adc_channel_mean;
+	input signed [ADC_DATA_WIDTH-1:0] trig_lvl;
     
-    reg signed [ADC_DATA_WIDTH +1:0] trig_lvl_ext; 
+    reg signed [ADC_DATA_WIDTH:0] trig_lvl_ext; 
 
 	   begin 
-	       trig_lvl_ext = $signed({trig_lvl[ADC_DATA_WIDTH-1], trig_lvl, 1'b0}); // Mult * 2 and sign extend
-           gratter_eval_f =(adc_channel_mean > trig_lvl_ext)? 1'b1: 1'b0;
+	       trig_lvl_ext = $signed({trig_lvl, 1'b0}); // Mult * 2 with sign 
+           trigger_rising_eval_f =(adc_channel_mean > trig_lvl_ext)? 1'b1: 1'b0;
        end 
 endfunction
 
-function  trigger_minus_eval_f;
-	input signed [ADC_DATA_WIDTH +1:0] adc_channel_mean;
-	input signed [ADC_DATA_WIDTH -1:0] trig_lvl;
+function  trigger_falling_eval_f;
+	input signed [ADC_DATA_WIDTH:0] adc_channel_mean;
+	input signed [ADC_DATA_WIDTH-1:0] trig_lvl;
 	
 	reg signed [ADC_DATA_WIDTH +1:0] trig_lvl_ext; 
 
 	   begin 	
-         trig_lvl_ext = $signed({trig_lvl[ADC_DATA_WIDTH-1], trig_lvl, 1'b0}); // Mult * 2 and  sign extend
-         trigger_minus_eval_f =(adc_channel_mean < trig_lvl_ext)? 1'b1: 1'b0;
+         trig_lvl_ext = $signed({trig_lvl, 1'b0}); // Mult * 2  with  sign extend
+         trigger_falling_eval_f =(adc_channel_mean < trig_lvl_ext)? 1'b1: 1'b0;
        end 
 endfunction
 
@@ -150,55 +151,57 @@ endfunction
           state <= IDLE;
           trigger0_r  <=  0; 
           trigger1_r  <=  0; 
-          wait_cnt <= 24'h7A120; //125000 * 4ns
+          wait_cnt <= 24'h7A120; //500000 * 4ns Initial Idle Time  = 2 ms 
+          pulse_delay  <=  0; 
+      
        end
        else
           case (state)
-             IDLE: begin
+             IDLE: begin        // Sleeping 
                 trigger0_r  <=  0; 
                 trigger1_r  <=  0; 
                 wait_cnt <= wait_cnt - 1;
                 if (wait_cnt == {WAIT_WIDTH{1'b0}})
                    state <= READY;
              end
-             READY: begin
-                if (gratter_eval_f(adc_mean_a, trig_level_a_reg)) begin 
+             READY: begin // Armed: Waiting first pulse
+                if (trigger_rising_eval_f(adc_mean_a, trig_level_a_reg)) begin 
                    state <= PULSE0;
                 end   
                 trigger0_r  <=  1'b1; 
                 trigger1_r  <=  0; 
                 wait_cnt <= 0;
              end
-             PULSE0 : begin
+             PULSE0 : begin // Got first pulse. Waiting Second
                 //if (trigger_eval_f(adc_mean_b, {trig_level_b, 4'h0})) begin
                 trigger0_r <=  1'b0; 
-                if (trigger_minus_eval_f(adc_mean_b, trig_level_b_reg)) begin
+                if (trigger_falling_eval_f(adc_mean_b, trig_level_b_reg)) begin // Testing  negative edge of input b
                     state <= PULSE1;
+                    pulse_delay  <=  wait_cnt[15:0]; 
                 end 
                 wait_cnt   <=  wait_cnt + 8'd20; // Multiply delay by 20
              end
-             PULSE1 : begin   
+             PULSE1 : begin   // Got second pulse. Waiting calculated delay
                 trigger1_r <=  1'b1; 
                 wait_cnt <= wait_cnt - 1;
                 if (wait_cnt == {WAIT_WIDTH{1'b0}})
                    state <= TRIGGER;
              end
-             TRIGGER : begin 
+             TRIGGER : begin // End Trigger
                 trigger1_r <=  1'b0; 
- //               wait_cnt <= wait_cnt + 1;
- //               if (wait_cnt == {WAIT_WIDTH{1'b1}})
  //                    state <= IDLE;
              end
              default :  
                      state <= IDLE;
           endcase
 
-
+// Write Level Registers
    always @(posedge adc_clk)
-                 case (trig_level_add)
+        if (trig_level_wrt)
+                 case (trig_level_addr)
  //                   2'b00:  
-                    2'b01: trig_level_a_reg  <=  trig_level; 
-                    2'b10: trig_level_b_reg  <=  trig_level; 
+                    2'b01: trig_level_a_reg  <=  trig_level_data; 
+                    2'b10: trig_level_b_reg  <=  trig_level_data; 
 //                    2'b11:
                     default : ;  
                  endcase
