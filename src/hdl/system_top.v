@@ -128,7 +128,7 @@ module system_top (
   wire    [N_ADC_CHANNELS-1:0] adc_valid;
   wire    [31:0] adc_data[0:N_ADC_CHANNELS-1]; // array of  32-bit registers;
 
-  wire    [13:0]      gpio_trigg_lvl = gpio_o[31:18]; // 14 bit GPIO lines 18 -31
+  //wire    [13:0]      gpio_trigg_lvl = gpio_o[31:18]; // 14 bit GPIO lines 18 -31
 
 //assign gpio_o
     //assign           user_sma_gpio_n = rx_clk; // J14
@@ -145,7 +145,7 @@ module system_top (
   wire [15:0] pulse_delay_i;
   // instantiations
   trigger_gen i_trigger_gen (
-    .adc_clk (rx_clk),
+    .clk (rx_clk), // 125MHz
 
     .adc_data_a (adc_data[0]),
     .adc_enable_a (adc_enable[0]),
@@ -165,10 +165,8 @@ module system_top (
 
     // Latency 480 ns ?
     //Trigger levels are positive
-//    .trig_level_a ({2'b11, 16'hF000} ), // < 18'h02000 / 18'd8192 = -200mV 18'h03000 = -320mV
-//    .trig_level_b ({2'b00, 16'h1000} ), // >
 
-    .trig_reset(!gpio_o[9]), // First LED
+    .trig_enable(gpio_o[9]), // Also first LED
     .trig_level_addr(gpio_o[12:11]),
     .trig_level_data(gpio_o[55:40]),
     .trig_level_wrt(gpio_o[13]),
@@ -194,8 +192,8 @@ module system_top (
 //  assign gpio_i[63:32] = gpio_o[63:32];
 
   assign gpio_i[63:56] = gpio_o[63:56];
-  assign gpio_i[55:40] = pulse_delay_i;
-  assign gpio_i[39:32] = gpio_o[39:32]; // LInes 55:40 are reading pulse delay
+  assign gpio_i[55:40] = pulse_delay_i; // Lines 55:40 are reading pulses 1->2 delay
+  assign gpio_i[39:32] = gpio_o[39:32]; 
   assign gpio_i[31:17] = gpio_o[31:17];
 
   fmcjesdadc1_spi i_fmcjesdadc1_spi (
