@@ -134,7 +134,7 @@ module system_top (
     //assign           user_sma_gpio_n = rx_clk; // J14
     //assign           user_sma_clk_n = adc_valid[0]; //  adc_enable[0] &  user_sma_clk_n, // SMA J12
 // SMA J11
-    assign user_sma_clk_p = gpio_o[9]; // J11 also First LED
+    assign user_sma_clk_p = gpio_o[36]; // J11 
      
   assign ddr3_1_p = 2'b11;
   assign ddr3_1_n = 3'b000;
@@ -166,7 +166,7 @@ module system_top (
     // Latency 480 ns ?
     //Trigger levels are positive
 
-    .trig_enable(gpio_o[9]), // Also first LED
+    .trig_enable(gpio_o[36]), // bit 4 second gpio
     .trig_level_addr(gpio_o[12:11]),
     .trig_level_data(gpio_o[55:40]),
     .trig_level_wrt(gpio_o[13]),
