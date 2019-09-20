@@ -111,7 +111,7 @@ module system_top (
 
   );
  
- localparam N_ADC_CHANNELS  = 2;
+ localparam N_ADC_CHANNELS  = 4;
 
   // internal signals
 
@@ -124,9 +124,9 @@ module system_top (
   wire            rx_ref_clk;
   wire            rx_clk;
 
-  wire    [0:(N_ADC_CHANNELS-1)] adc_enable;
-  wire    [0:(N_ADC_CHANNELS-1)] adc_valid;
-  wire    [31:0] adc_data[0:(N_ADC_CHANNELS-1)]; // array of  32-bit registers;
+  wire    [N_ADC_CHANNELS-1:0] adc_enable;
+  wire    [N_ADC_CHANNELS-1:0] adc_valid;
+  wire    [31:0] adc_data[0:N_ADC_CHANNELS-1]; // array of  32-bit registers;
 
   wire    [13:0]      gpio_trigg_lvl = gpio_o[31:18]; // 14 bit GPIO lines 18 -31
 
@@ -142,6 +142,7 @@ module system_top (
   assign iic_rstn = 1'b1;
   assign spi_csn_0 = spi_csn[0];
 
+  wire [15:0] pulse_delay_i;
   // instantiations
   trigger_gen i_trigger_gen (
     .adc_clk (rx_clk),
@@ -153,6 +154,14 @@ module system_top (
     .adc_data_b (adc_data[1]),
     .adc_enable_b (adc_enable[1]),
     .adc_valid_b (adc_valid[1]),
+    
+    .adc_data_c (adc_data[2]),
+    .adc_enable_c (adc_enable[2]),
+    .adc_valid_c (adc_valid[2]),
+    
+    .adc_data_d (adc_data[3]),
+    .adc_enable_d (adc_enable[3]),
+    .adc_valid_d (adc_valid[3]),
 
     // Latency 480 ns ?
     //Trigger levels are positive
@@ -163,7 +172,7 @@ module system_top (
     .trig_level_addr(gpio_o[12:11]),
     .trig_level_data(gpio_o[55:40]),
     .trig_level_wrt(gpio_o[13]),
-    .pulse_delay(gpio_i[55:40]), // O 
+    .pulse_delay(pulse_delay_i), // O 
 
     .trigger0 (user_sma_clk_n), // user_sma_clk_p
     .trigger1 (user_sma_gpio_n) //J14
@@ -183,8 +192,10 @@ module system_top (
     .dio_p (gpio_bd));
 
 //  assign gpio_i[63:32] = gpio_o[63:32];
-  assign gpio_i[39:32] = gpio_o[39:32]; // LInes 55:40 are reading pulse delay
+
   assign gpio_i[63:56] = gpio_o[63:56];
+  assign gpio_i[55:40] = pulse_delay_i;
+  assign gpio_i[39:32] = gpio_o[39:32]; // LInes 55:40 are reading pulse delay
   assign gpio_i[31:17] = gpio_o[31:17];
 
   fmcjesdadc1_spi i_fmcjesdadc1_spi (
