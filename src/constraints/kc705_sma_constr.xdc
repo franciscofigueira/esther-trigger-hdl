@@ -20,3 +20,6 @@ set_property PACKAGE_PIN Y24 [get_ports user_sma_gpio_n]
 #set_property IOSTANDARD LVCMOS25 [get_ports user_sma_gpio_n]
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
+
+set_false_path -from [get_pins {i_system_wrapper/system_i/axi_gpio/U0/gpio_core_1/Dual.gpio2_Data_Out_reg[*]/C}] 
+set_false_path -from [get_pins {i_system_wrapper/system_i/axi_gpio/U0/gpio_core_1/Dual.gpio_Data_Out_reg[*]/C}] 

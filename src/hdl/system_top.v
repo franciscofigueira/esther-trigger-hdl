@@ -107,8 +107,17 @@ module system_top (
   output          user_sma_clk_n, // SMA J12
   //User SMA Gpio
   output          user_sma_gpio_p, //Y23 USER_SMA_GPIO_P LVCMOS25 J13.1
-  output          user_sma_gpio_n //Y24 USER_SMA_GPIO_N LVCMOS25 J14.1 bellow J11
+  output          user_sma_gpio_n,  //Y24 USER_SMA_GPIO_N LVCMOS25 J14.1 bellow J11
+// PCIE
+  output  [3:0]    pci_exp_txp,
+  output  [3:0]    pci_exp_txn,
+  input   [3:0]    pci_exp_rxp,
+  input   [3:0]    pci_exp_rxn,
 
+  input         pci_sys_clk_p,
+  input         pci_sys_clk_n,
+  input         pci_sys_rst_n
+  
   );
  
  localparam N_ADC_CHANNELS  = 4;
@@ -289,6 +298,19 @@ module system_top (
     .spi_sdi_i (spi_miso),
     .spi_sdo_i (spi_mosi),
     .spi_sdo_o (spi_mosi));
+
+//PCIE
+
+xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
+ .pci_exp_txp(pci_exp_txp),
+ .pci_exp_txn(pci_exp_txn),
+ .pci_exp_rxp(pci_exp_rxp),
+ .pci_exp_rxn(pci_exp_rxn),
+
+ .sys_clk_p(pci_sys_clk_p),
+ .sys_clk_n(pci_sys_clk_n),
+ .sys_rst_n(pci_sys_rst_n)
+);
 
 endmodule
 
