@@ -118,11 +118,42 @@ module PIO_EP #(
     wire  [7:0]       req_be;
     wire  [12:0]      req_addr;
 
+wire [31:0] status_reg, control_reg, dma_ha_ch0, dma_ha_ch1; // From Pcie regs
+wire [20:0] dma_size_i; // From Pcie regs
+
+PIO_EP_SHAPI_REGS  #(
+        .TCQ( TCQ )
+    ) EP_REGS_inst (
+
+        .clk(clk),               // I
+        .rst_n(rst_n),           // I
+
+        // Read Port
+
+        .rd_addr(rd_addr),     // I [10:0]
+        .rd_be(rd_be),         // I [3:0]
+        .rd_data(rd_data),     // O [31:0]
+
+        // Write Port
+
+        .wr_addr(wr_addr),     // I [10:0]
+        .wr_be(wr_be),         // I [7:0]
+        .wr_data(wr_data),     // I [31:0]
+        .wr_en(wr_en),         // I
+        .wr_busy(wr_busy),      // O
+
+        .status_reg(status_reg),  // I
+        .control_reg(control_reg), // O
+        .dma_size(dma_size_i), // O [20:0] 
+//        .dma_prog_thresh(), // O
+        .dma_ha_ch0(dma_ha_ch0), // O 
+        .dma_ha_ch1(dma_ha_ch1) // O 
+    );
 
     //
     // ENDPOINT MEMORY : 8KB memory aperture implemented in FPGA BlockRAM(*)
     //
-
+/*
     PIO_EP_MEM_ACCESS  #(
        .TCQ( TCQ )
        ) EP_MEM_inst (
@@ -145,7 +176,7 @@ module PIO_EP #(
       .wr_busy(wr_busy)      // O
       
       );
-
+*/
     //
     // Local-Link Receive Controller
     //
