@@ -1,9 +1,6 @@
 /**
- * ATCA IO CONTROL Integrator
  * Linux Device Driver
  * Internal definitions for all parts (prototypes, data, macros)
- *
- *
  */
 #ifndef _DRIVER_COMMON_H
 #define _DRIVER_COMMON_H
@@ -29,9 +26,12 @@
 #include <linux/delay.h> /* usleep_range */
 #include <linux/dma-mapping.h>
 
-#include "../include/atca-v2-pcie.h"
+#include "../include/esther-trigger.h"
 
 /*************************************************************************/
+/* Function prototypes */
+long _unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+
 /* Private data types and structures */
 
 typedef struct _BAR_STRUCT {

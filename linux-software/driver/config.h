@@ -12,8 +12,8 @@
 /* Minor  number is set to 0  */
 
 /* The number of available minor numbers */
-#define ATCA_MINOR_BASE (0)    //
-#define ATCA_MINOR_COUNT (255) //
+#define ESTHER_MINOR_BASE (0)    //
+#define ESTHER_MINOR_COUNT (255) //
 
 //#define MINOR_NUMBERS 2 // 0xffff
 
@@ -21,16 +21,16 @@
 
 #define NODENAMEFMT "atca_v2_%d"
 #define DMACH0NODENAMEFMT "atca_v2_dma_ch0_%d"
-#define DMACH1NODENAMEFMT "atca_v2_dma_ch1_%d"
+//#define DMACH1NODENAMEFMT "atca_v2_dma_ch1_%d"
 
-#define DRV_NAME "atca_v2_drv"
+#define DRV_NAME "esther_trg_drv"
 
 /* Maximum number of devices*/
-#define MAXDEVICES 2
+#define MAXDEVICES 1
 
 #define DMA_BUFFS 8 // Number of DMA Buffs
 
 /* board PCI id */
-#define PCI_DEVICE_ID_FPGA 0x0030
+#define PCI_DEVICE_ID_FPGA 0x0035
 
 #define NUM_BARS 2

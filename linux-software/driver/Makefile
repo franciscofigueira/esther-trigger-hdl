@@ -29,11 +29,11 @@
 
 # core driver files
 
-DRIVER_NAME := atca_v2
+DRIVER_NAME := esther_trg
 #atca_ioc_w7x_intrlck
 
 TARGET := $(DRIVER_NAME).ko
-CFILES :=  atca-v2-pcie-drv.c atca-v2-unlocked-ioctl.c
+CFILES :=  esther-trigger-drv.c unlocked-ioctl.c
 
 KVER = $(shell uname -r)
 KDIR = /lib/modules/$(KVER)/build
@@ -45,7 +45,7 @@ $(DRIVER_NAME)-objs := $(CFILES:.c=.o)
 obj-m := $(DRIVER_NAME).o
 
 # set the install path
-INSTDIR := /lib/modules/$(KVER)/kernel/drivers/atca
+INSTDIR := /lib/modules/$(KVER)/kernel/drivers/pci/pcie
 
 # Comment/uncomment the following line to disable/enable debugging
 DEBUG = y
@@ -71,9 +71,9 @@ install: default #
 	find /lib/modules/$(KVER) -name $(TARGET) -exec rm -f {} \; || true
 	install -D -m 644 $(TARGET) $(INSTDIR)/$(TARGET)
 	/sbin/depmod -a || true
-	install -m 0644   atca_v2.rules /etc/udev/rules.d
+	install -m 0644   esther_trg.rules /etc/udev/rules.d
 
 uninstall: clean
 	find /lib/modules/$(KVER) -name $(TARGET) -exec rm -f {} \; || true
 	/sbin/depmod -a || true
-	find /etc/udev/rules.d -name atca_v2 -exec rm -f {} \; || true
+	find /etc/udev/rules.d -name esther_trg -exec rm -f {} \; || true
