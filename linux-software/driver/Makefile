@@ -1,6 +1,6 @@
 ################################################################################
 #
-# ATCA V2nn PCIe Vivado Project General   Linux driver
+# ESTHER TRIGGER   Linux driver
 # This program is free software; you can redistribute it and/or modify it
 # under the terms and conditions of the GNU General Public License,
 # version 2, as published by the Free Software Foundation.
@@ -52,7 +52,7 @@ DEBUG = y
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
-  DEBFLAGS = -O -g -DATCA_DEBUG # "-O" is needed to expand inlines
+  DEBFLAGS = -O -g -DESTHER_DEBUG # "-O" is needed to expand inlines
 else
   DEBFLAGS = -O2
 endif

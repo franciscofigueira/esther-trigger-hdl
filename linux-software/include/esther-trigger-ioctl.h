@@ -4,16 +4,16 @@
  *
  */
 
-#ifndef _ATCA_PCIE_IOCTL_H_
-#define _ATCA_PCIE_IOCTL_H_
+#ifndef _ESTHER_TRG_IOCTL_H_
+#define _ESTHER_TRG_IOCTL_H_
 
-#include "atca-v2-pcie.h"
+//#include "atca-v2-pcie.h"
 
 /*
  * IOCTL definitions
  */
 
-#define ATCA_PCIE_IOC_MAGIC                                                    \
+#define ESTHER_TRG_IOC_MAGIC                                                   \
   'j' // /* Please use a different 8-bit number in your code */
       /*See  /Documentation/ioctl-number.txt*/
 
@@ -28,30 +28,28 @@
 /**********************************************************************
  *                         IOCTL FUNCTIONS                            *
  *********************************************************************/
-#define ATCA_PCIE_IOCT_INT_ENABLE _IO(ATCA_PCIE_IOC_MAGIC, 1)
-#define ATCA_PCIE_IOCT_INT_DISABLE _IO(ATCA_PCIE_IOC_MAGIC, 2)
-#define ATCA_PCIE_IOCT_ACQ_ENABLE _IO(ATCA_PCIE_IOC_MAGIC, 3)
-#define ATCA_PCIE_IOCT_ACQ_DISABLE _IO(ATCA_PCIE_IOC_MAGIC, 4)
-#define ATCA_PCIE_IOCT_DMA_ENABLE _IO(ATCA_PCIE_IOC_MAGIC, 5)
-#define ATCA_PCIE_IOCT_DMA_DISABLE _IO(ATCA_PCIE_IOC_MAGIC, 6)
-#define ATCA_PCIE_IOCT_SOFT_TRIG _IO(ATCA_PCIE_IOC_MAGIC, 7)
-#define ATCA_PCIE_IOCG_STATUS _IOR(ATCA_PCIE_IOC_MAGIC, 8, u_int32_t)
-#define ATCA_PCIE_IOCS_RDTMOUT _IOW(ATCA_PCIE_IOC_MAGIC, 9, u_int32_t)
-#define ATCA_PCIE_IOCS_DMA_SIZE _IOW(ATCA_PCIE_IOC_MAGIC, 10, u_int32_t)
-#define ATCA_PCIE_IOCG_DMA_SIZE _IOR(ATCA_PCIE_IOC_MAGIC, 11, u_int32_t)
-#define ATCA_PCIE_IOCT_DMA_RESET _IO(ATCA_PCIE_IOC_MAGIC, 12)
-#define ATCA_PCIE_IOCT_STREAM_ENABLE _IO(ATCA_PCIE_IOC_MAGIC, 13)
-#define ATCA_PCIE_IOCT_STREAM_DISABLE _IO(ATCA_PCIE_IOC_MAGIC, 14)
-#define ATCA_PCIE_IOCS_EO_OFFSETS                                              \
-  _IOW(ATCA_PCIE_IOC_MAGIC, 15, struct atca_eo_config)
+#define ESTHER_TRG_IOCT_INT_ENABLE _IO(ESTHER_TRG_IOC_MAGIC, 1)
+#define ESTHER_TRG_IOCT_INT_DISABLE _IO(ESTHER_TRG_IOC_MAGIC, 2)
+#define ESTHER_TRG_IOCT_ACQ_ENABLE _IO(ESTHER_TRG_IOC_MAGIC, 3)
+#define ESTHER_TRG_IOCT_ACQ_DISABLE _IO(ESTHER_TRG_IOC_MAGIC, 4)
+#define ESTHER_TRG_IOCT_DMA_ENABLE _IO(ESTHER_TRG_IOC_MAGIC, 5)
+#define ESTHER_TRG_IOCT_DMA_DISABLE _IO(ESTHER_TRG_IOC_MAGIC, 6)
+#define ESTHER_TRG_IOCT_SOFT_TRIG _IO(ESTHER_TRG_IOC_MAGIC, 7)
+#define ESTHER_TRG_IOCG_STATUS _IOR(ESTHER_TRG_IOC_MAGIC, 8, u_int32_t)
+#define ESTHER_TRG_IOCS_RDTMOUT _IOW(ESTHER_TRG_IOC_MAGIC, 9, u_int32_t)
+#define ESTHER_TRG_IOCS_DMA_SIZE _IOW(ESTHER_TRG_IOC_MAGIC, 10, u_int32_t)
+#define ESTHER_TRG_IOCG_DMA_SIZE _IOR(ESTHER_TRG_IOC_MAGIC, 11, u_int32_t)
+#define ESTHER_TRG_IOCT_DMA_RESET _IO(ESTHER_TRG_IOC_MAGIC, 12)
+#define ESTHER_TRG_IOCT_STREAM_ENABLE _IO(ESTHER_TRG_IOC_MAGIC, 13)
+#define ESTHER_TRG_IOCT_STREAM_DISABLE _IO(ESTHER_TRG_IOC_MAGIC, 14)
 
-#define ATCA_PCIE_IOC_MAXNR 15
+#define ESTHER_TRG_IOC_MAXNR 14
 
 /*
- *#define ATCA_PCIE_IOCG_TMRGATE       _IOR(ATCA_PCIE_IOC_MAGIC, 13,
+ *#define ESTHER_TRG_IOCG_TMRGATE       _IOR(ESTHER_TRG_IOC_MAGIC, 13,
  *u_int32_t)
  *
- *#define ATCA_PCIE_IOCS_TMR0CTRL      _IOW(ATCA_PCIE_IOC_MAGIC, 14,
+ *#define ESTHER_TRG_IOCS_TMR0CTRL      _IOW(ESTHER_TRG_IOC_MAGIC, 14,
  *u_int32_t)
  *#define ATCA_PCIE_IOCG_TMR0CTRL      _IOR(ATCA_PCIE_IOC_MAGIC, 15,
  *u_int32_t)

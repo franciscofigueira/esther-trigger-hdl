@@ -1,5 +1,5 @@
 /**
- * ATCA MIMO v2 PCIe Vivado Project General   Linux driver
+ * ESTHER TRIGGER PCIe  Project Linux driver
  * Project Name:
  * Design Name:
  * Linux Device Driver
@@ -30,7 +30,7 @@
 /* Internal definitions for all parts (includes, prototypes, data, macros) */
 #include "common.h"
 
-#include "atca-v2-unlocked-ioctl.h"
+/*#include "atca-v2-unlocked-ioctl.h"*/
 
 /* Check macros and kernel version first */
 #ifndef KERNEL_VERSION
@@ -67,7 +67,7 @@ static struct pci_device_id ids[] = {
 
 MODULE_DEVICE_TABLE(pci, ids);
 
-struct class *atca_v2_class;
+struct class *esther_class;
 
 /*function prototypes*/
 int _probe(struct pci_dev *pdev, const struct pci_device_id *id);
@@ -336,58 +336,6 @@ static const struct file_operations dmach0_fops = {
     //   .unlocked_ioctl =
     .mmap = _dmach0_mmap,
     .release = _dmach0_release,
-};
-
-/**
- * _dmach1_open
- */
-int _dmach1_open(struct inode *inode, struct file *filp) {
-  PCIE_DEV *pcieDev; /* device information */
-
-  /** retrieve the device information  */
-  pcieDev = container_of(inode->i_cdev, PCIE_DEV, dmach1_cdev);
-  filp->private_data = pcieDev; // for other methods
-  /*printk(KERN_INFO "Open dmach1_mmap\n");*/
-  return 0;
-}
-
-/**
- * _dmach1_release
- *  		called by close() sys call
- */
-int _dmach1_release(struct inode *inode, struct file *filp) {
-  PCIE_DEV *pcieDev; /* device information */
-  /**    retrieve the device information  */
-  pcieDev = container_of(inode->i_cdev, PCIE_DEV, dmach1_cdev);
-  filp->private_data = NULL;
-  return 0;
-}
-/* maps the DMA ch1 buffer (BAR 0) into user space for memory-like access using
- * mmap() */
-int _dmach1_mmap(struct file *filp, struct vm_area_struct *vma) {
-  PCIE_DEV *pcieDev = (PCIE_DEV *)filp->private_data;
-  u8 *buffer_virt;
-  dma_addr_t buffer_bus; /* bus address */
-  u32 byteSize;
-
-  buffer_bus = pcieDev->dmaPollBuff.addr_hw;
-  buffer_virt = pcieDev->dmaPollBuff.addr_v;
-
-  byteSize = PAGE_SIZE;
-  if (vma->vm_pgoff == 0) {
-    int rv = dma_mmap_coherent(NULL, vma, buffer_virt, buffer_bus,
-                               byteSize * DMA_BUFFS);
-    if (rv)
-      return -EAGAIN;
-  }
-  return 0;
-}
-
-static const struct file_operations dmach1_fops = {
-    .owner = THIS_MODULE,
-    .open = _dmach1_open,
-    .mmap = _dmach1_mmap,
-    .release = _dmach1_release,
 };
 
 /**
@@ -735,7 +683,7 @@ int _probe(struct pci_dev *pdev, const struct pci_device_id *id) {
     return -EIO;
   }
 
-  pcieDev->dev = device_create(atca_v2_class, NULL, pcieDev->devno, NULL,
+  pcieDev->dev = device_create(esther_class, NULL, pcieDev->devno, NULL,
                                NODENAMEFMT, dev_minor); // No parent device
 
   /*Now for DMA ch0 device node*/
@@ -747,20 +695,19 @@ int _probe(struct pci_dev *pdev, const struct pci_device_id *id) {
     return -EIO;
   }
   pcieDev->dmach0_dev =
-      device_create(atca_v2_class, pcieDev->dev, pcieDev->dmach0_devno, NULL,
+      device_create(esther_class, pcieDev->dev, pcieDev->dmach0_devno, NULL,
                     DMACH0NODENAMEFMT, dev_minor);
-
-  pcieDev->dmach1_devno = MKDEV(device_major, dev_minor + 2);
-  cdev_init(&pcieDev->dmach1_cdev, &dmach1_fops);
-  rv = cdev_add(&pcieDev->dmach1_cdev, pcieDev->dmach1_devno, 1);
-  if (rv) {
-    printk(KERN_ERR "Error %d adding _dmach1 device", rv);
-    return -EIO;
-  }
-  pcieDev->dmach1_dev =
-      device_create(atca_v2_class, NULL, pcieDev->dmach1_devno, NULL,
-                    DMACH1NODENAMEFMT, dev_minor);
-
+  /*
+    pcieDev->dmach1_devno = MKDEV(device_major, dev_minor + 2);
+    cdev_init(&pcieDev->dmach1_cdev, &dmach1_fops);
+    rv = cdev_add(&pcieDev->dmach1_cdev, pcieDev->dmach1_devno, 1);
+    if (rv) {
+      printk(KERN_ERR "Error %d adding _dmach1 device", rv);
+      return -EIO;
+    }
+    pcieDev->dmach1_dev = device_create(esther_class, NULL,
+    pcieDev->dmach1_devno, NULL, DMACH1NODENAMEFMT, dev_minor);
+  */
   printk(KERN_NOTICE "%s installed, major:%d\n", DRV_NAME, device_major);
 
   PDEBUG("Mod Status 0x%08x\n",
@@ -804,11 +751,11 @@ void _remove(struct pci_dev *pdev) {
   // ----- ----- -----
   spin_unlock_irqrestore(&pcieDev->irq_lock, flags);
   cdev_del(&pcieDev->dmach0_cdev);
-  cdev_del(&pcieDev->dmach1_cdev);
+  /*cdev_del(&pcieDev->dmach1_cdev);*/
   cdev_del(&pcieDev->cdev);
-  device_destroy(atca_v2_class, pcieDev->dmach0_devno);
-  device_destroy(atca_v2_class, pcieDev->dmach1_devno);
-  device_destroy(atca_v2_class, pcieDev->devno); // destroy parent
+  device_destroy(esther_class, pcieDev->dmach0_devno);
+  /*device_destroy(esther_class, pcieDev->dmach1_devno);*/
+  device_destroy(esther_class, pcieDev->devno); // destroy parent
 
   /* deregistering DMAable areas and virtual addresses for the board */
   /*for (i = 0; i < DMA_BUFFS; i++) {*/
@@ -845,7 +792,8 @@ static int __init _pcie_init(void) {
   dev_t devno; // = 0;
 
   /*devno = MKDEV(0, 0);*/
-  rv = alloc_chrdev_region(&devno, ATCA_MINOR_BASE, ATCA_MINOR_COUNT, DRV_NAME);
+  rv = alloc_chrdev_region(&devno, ESTHER_MINOR_BASE, ESTHER_MINOR_COUNT,
+                           DRV_NAME);
   if (rv) {
     printk(KERN_ERR "Failed to register device %s with error %d\n", DRV_NAME,
            rv);
@@ -855,10 +803,10 @@ static int __init _pcie_init(void) {
   PDEBUG("_init: device_num:%d\n", device_major);
   dev_minor = 0;
 
-  atca_v2_class = class_create(THIS_MODULE, DRV_NAME);
-  if (IS_ERR(atca_v2_class)) {
+  esther_class = class_create(THIS_MODULE, DRV_NAME);
+  if (IS_ERR(esther_class)) {
     printk(KERN_ERR "Unable to allocate class\n");
-    rv = PTR_ERR(atca_v2_class);
+    rv = PTR_ERR(esther_class);
 
     goto unreg_chrdev;
   }
@@ -872,10 +820,10 @@ static int __init _pcie_init(void) {
   }
   return rv;
 unreg_class:
-  class_unregister(atca_v2_class);
-  class_destroy(atca_v2_class);
+  class_unregister(esther_class);
+  class_destroy(esther_class);
 unreg_chrdev:
-  unregister_chrdev_region(devno, ATCA_MINOR_COUNT);
+  unregister_chrdev_region(devno, ESTHER_MINOR_COUNT);
 fail:
   return rv;
 }
@@ -886,9 +834,9 @@ fail:
 static void _pcie_exit(void) {
   /* unregistering the board */
   pci_unregister_driver(&_pcie_pci);
-  class_unregister(atca_v2_class);
-  unregister_chrdev_region(MKDEV(device_major, ATCA_MINOR_BASE),
-                           ATCA_MINOR_COUNT);
+  class_unregister(esther_class);
+  unregister_chrdev_region(MKDEV(device_major, ESTHER_MINOR_BASE),
+                           ESTHER_MINOR_COUNT);
 }
 
 module_init(_pcie_init);

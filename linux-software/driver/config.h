@@ -19,8 +19,8 @@
 
 /* Node name of the char device */
 
-#define NODENAMEFMT "atca_v2_%d"
-#define DMACH0NODENAMEFMT "atca_v2_dma_ch0_%d"
+#define NODENAMEFMT "esther_trg_%d"
+#define DMACH0NODENAMEFMT "esther_trg_dma_%d"
 //#define DMACH1NODENAMEFMT "atca_v2_dma_ch1_%d"
 
 #define DRV_NAME "esther_trg_drv"
