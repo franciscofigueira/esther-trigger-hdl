@@ -299,6 +299,13 @@ module system_top (
     .spi_sdo_i (spi_mosi),
     .spi_sdo_o (spi_mosi));
 
+    wire [63:0] adc_all_data_i;
+
+    assign adc_all_data_i[31:0]     = adc_data[0];
+    assign adc_all_data_i[63:32]    = adc_data[1];
+
+    wire  adc_all_data_en = adc_enable[0];
+
 //PCIE
 
 xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
@@ -309,7 +316,14 @@ xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
 
  .sys_clk_p(pci_sys_clk_p),
  .sys_clk_n(pci_sys_clk_n),
- .sys_rst_n(pci_sys_rst_n)
+ .sys_rst_n(pci_sys_rst_n),
+ 
+       // ADC Interface
+   .adc_data(adc_all_data_i),
+   .adc_data_en(adc_all_data_en),
+   
+   .adc_data_clk(rx_clk)  // 125MHz
+
 );
 
 endmodule

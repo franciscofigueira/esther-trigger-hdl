@@ -78,6 +78,8 @@ module PIO_EP #(
   output                        s_axis_tx_tvalid,
   output                        tx_src_dsc,
 
+
+
   //AXIS RX
   input   [C_DATA_WIDTH-1:0]    m_axis_rx_tdata,
   input   [KEEP_WIDTH-1:0]      m_axis_rx_tkeep,
@@ -89,7 +91,19 @@ module PIO_EP #(
   output                        req_compl,
   output                        compl_done,
 
-  input   [15:0]                cfg_completer_id
+// For DMA
+  output                          cfg_interrupt,
+
+  input   [15:0]                cfg_completer_id,
+
+    // DMA extension
+  input  [5:0]                  tx_buf_av,
+  input                         cfg_interrupt_rdy,
+
+ // ADC Interface
+  input   [63:0]   adc_data,
+  input   adc_data_en,
+  input   adc_data_clk
 );
 
     // Local wires
@@ -118,8 +132,17 @@ module PIO_EP #(
     wire  [7:0]       req_be;
     wire  [12:0]      req_addr;
 
-wire [31:0] status_reg, control_reg, dma_ha_ch0, dma_ha_ch1; // From Pcie regs
-wire [20:0] dma_size_i; // From Pcie regs
+    wire [31:0] status_reg, dma_status, control_reg, dma_ha_ch0; // From Pcie regs
+    wire [20:0] dma_size_i;
+
+    wire  [31:0]    dma_host_addr_tx;
+    wire  [7:0]     dma_tlp_payload_size;
+    wire [31:0] host_addr_tx;
+    wire [63:0] dma_data;
+    wire dma_tlp_req, dma_tlp_compl_done;
+    wire [63:0]  data_ch0;
+    wire fifo_rd_en;
+
 
 PIO_EP_SHAPI_REGS  #(
         .TCQ( TCQ )
@@ -144,39 +167,11 @@ PIO_EP_SHAPI_REGS  #(
 
         .status_reg(status_reg),  // I
         .control_reg(control_reg), // O
-        .dma_size(dma_size_i), // O [20:0] 
-//        .dma_prog_thresh(), // O
-        .dma_ha_ch0(dma_ha_ch0), // O 
-        .dma_ha_ch1(dma_ha_ch1) // O 
+        .dma_size(dma_size_i), // O [20:0]
+        .dma_ha_ch0(dma_ha_ch0), // O
+        .dma_ha_ch1() // O
     );
 
-    //
-    // ENDPOINT MEMORY : 8KB memory aperture implemented in FPGA BlockRAM(*)
-    //
-/*
-    PIO_EP_MEM_ACCESS  #(
-       .TCQ( TCQ )
-       ) EP_MEM_inst (
-      
-      .clk(clk),               // I
-      .rst_n(rst_n),           // I
-      
-      // Read Port
-      
-      .rd_addr(rd_addr),     // I [10:0]
-      .rd_be(rd_be),         // I [3:0]
-      .rd_data(rd_data),     // O [31:0]
-      
-      // Write Port
-      
-      .wr_addr(wr_addr),     // I [10:0]
-      .wr_be(wr_be),         // I [7:0]
-      .wr_data(wr_data),     // I [31:0]
-      .wr_en(wr_en),         // I
-      .wr_busy(wr_busy)      // O
-      
-      );
-*/
     //
     // Local-Link Receive Controller
     //
@@ -213,25 +208,25 @@ PIO_EP_SHAPI_REGS  #(
     .req_tag(req_tag),                      // O [7:0]
     .req_be(req_be),                        // O [7:0]
     .req_addr(req_addr),                    // O [12:0]
-                                            
-    // Memory Write Port                    
+
+    // Memory Write Port
     .wr_addr(wr_addr),                      // O [10:0]
     .wr_be(wr_be),                          // O [7:0]
     .wr_data(wr_data),                      // O [31:0]
     .wr_en(wr_en),                          // O
     .wr_busy(wr_busy)                       // I
-                                            
+
   );
 
     //
     // Local-Link Transmit Controller
     //
 
-  PIO_TX_ENGINE #(
+  PIO_DMA_TX_ENGINE #(
     .C_DATA_WIDTH( C_DATA_WIDTH ),
     .KEEP_WIDTH( KEEP_WIDTH ),
     .TCQ( TCQ )
-  )EP_TX_inst(
+  ) EP_DMA_TX_inst (
 
     .clk(clk),                                  // I
     .rst_n(rst_n),                              // I
@@ -265,12 +260,53 @@ PIO_EP_SHAPI_REGS  #(
     .rd_be(rd_be),                            // O [3:0]
     .rd_data(rd_data),                        // I [31:0]
 
-    .completer_id(cfg_completer_id)           // I [15:0]
+    .completer_id(cfg_completer_id),           // I [15:0]
+
+
+    .dma_data(dma_data), // I  [63:0]
+    .dma_host_addr(), // I [31:0]dma_host_addr_tx
+    .dma_tlp_req(dma_tlp_req),  // I
+    .dma_tlp_compl_done(dma_tlp_compl_done), // O
+    .fifo_rd_en(fifo_rd_en),  // O
+    .dma_tlp_payload_size(dma_tlp_payload_size) // I [7:0] in DW
 
     );
+
+    pci_dma_engine #(
+        .C_DATA_WIDTH( C_DATA_WIDTH ),
+        .KEEP_WIDTH( KEEP_WIDTH ),
+        .TCQ( TCQ )
+    ) pci_dma_engine_inst (
+
+        .pcie_user_clk(clk),                                  // I
+        .pcie_user_rst_n(rst_n),                              // I
+        .s_axis_tx_tvalid(s_axis_tx_tvalid), //
+        .tx_buf_av(tx_buf_av),   // I [5:0]
+        .cfg_interrupt    (cfg_interrupt),      // O
+        .cfg_interrupt_rdy (cfg_interrupt_rdy), // I
+
+        .control_reg(control_reg[30:20]),     // I [30:20]
+        .dma_status(dma_status),       // O [7:0]
+        .dma_compl_acq(1'b0),  // I dma_compl_acq
+        .dma_size(dma_size_i), // I [31:0]
+        .dma_ha_ch0(dma_ha_ch0),  // I [31:0]
+        //.dma_ha_ch1(dma_ha_ch1),  // I [31:0]
+
+        .dma_tlp_payload_size(dma_tlp_payload_size), // O [7:0] in DW
+        .host_addr_tx(dma_host_addr_tx),
+        .dma_data_tx(dma_data),
+        .fifo_rd_en(fifo_rd_en),  // I
+        .tlp_req(dma_tlp_req),  //O
+        .dma_tlp_compl_done(dma_tlp_compl_done),  //I
+        //.dma_pkt_cnt(dma_pkt_cnt), // O
+        .adc_data_clk(adc_data_clk),       // I
+        .data_in_ch0(adc_data),        // I
+        .data_valid_ch0(data_valid_ch0),       // I
+        .data_ready_ch0(data_ready_ch0) //O
+);
+
 
   assign req_compl  = req_compl_int;
   assign compl_done = compl_done_int;
 
 endmodule // PIO_EP
-

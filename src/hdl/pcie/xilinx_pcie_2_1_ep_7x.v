@@ -59,7 +59,7 @@
 (* DowngradeIPIdentifiedWarnings = "yes" *)
 module xilinx_pcie_2_1_ep_7x # (
   parameter PL_FAST_TRAIN       = "FALSE", // Simulation Speedup
-  parameter EXT_PIPE_SIM        = "FALSE",  // This Parameter has effect on selecting Enable External PIPE Interface in GUI.	
+  parameter EXT_PIPE_SIM        = "FALSE",  // This Parameter has effect on selecting Enable External PIPE Interface in GUI.
   parameter PCIE_EXT_CLK        = "TRUE",    // Use External Clocking Module
   parameter PCIE_EXT_GT_COMMON  = "FALSE",
   parameter REF_CLK_FREQ        = 0,     // 0 - 100 MHz, 1 - 125 MHz, 2 - 250 MHz
@@ -71,12 +71,15 @@ module xilinx_pcie_2_1_ep_7x # (
   input   [3:0]    pci_exp_rxp,
   input   [3:0]    pci_exp_rxn,
 
-
-
   input                                       sys_clk_p,
   input                                       sys_clk_n,
-  input                                       sys_rst_n
+  input                                       sys_rst_n,
+
+  input   [63:0]  adc_data,
+  input   adc_data_en,
+  input   adc_data_clk
 );
+
 
 // Wire Declarations
   wire                                        pipe_mmcm_rst_n;
@@ -143,6 +146,11 @@ module xilinx_pcie_2_1_ep_7x # (
   wire                                        cfg_interrupt_assert;
   wire   [7:0]                                cfg_interrupt_di;
   wire                                        cfg_interrupt_stat;
+
+  // DMA extension
+  wire                                        cfg_interrupt_rdy;
+  wire  [5:0]                                 tx_buf_av;
+
   wire   [4:0]                                cfg_pciecap_interrupt_msgnum;
 
   wire                                        cfg_to_turnoff;
@@ -201,16 +209,16 @@ module xilinx_pcie_2_1_ep_7x # (
 
 
 pcie_7x_0_support #
-   (	 
+   (
     .LINK_CAP_MAX_LINK_WIDTH        ( 4 ),  // PCIe Lane Width
     .C_DATA_WIDTH                   ( C_DATA_WIDTH ),                       // RX/TX interface data width
     .KEEP_WIDTH                     ( KEEP_WIDTH ),                         // TSTRB width
     .PCIE_REFCLK_FREQ               ( REF_CLK_FREQ ),                       // PCIe reference clock frequency
     .PCIE_USERCLK1_FREQ             ( USER_CLK_FREQ +1 ),                   // PCIe user clock 1 frequency
-    .PCIE_USERCLK2_FREQ             ( USERCLK2_FREQ +1 ),                   // PCIe user clock 2 frequency             
+    .PCIE_USERCLK2_FREQ             ( USERCLK2_FREQ +1 ),                   // PCIe user clock 2 frequency
     .PCIE_USE_MODE                  ("3.0"),           // PCIe use mode
     .PCIE_GT_DEVICE                 ("GTX")              // PCIe GT device
-   ) 
+   )
 pcie_7x_0_support_i
   (
 
@@ -342,7 +350,7 @@ pcie_7x_0_support_i
   // EP Only                                        //
   //------------------------------------------------//
   .cfg_interrupt                             ( cfg_interrupt ),
-  .cfg_interrupt_rdy                         ( ),
+  .cfg_interrupt_rdy                         ( cfg_interrupt_rdy ),  // DMA extension
   .cfg_interrupt_assert                      ( cfg_interrupt_assert ),
   .cfg_interrupt_di                          ( cfg_interrupt_di ),
   .cfg_interrupt_do                          ( ),
@@ -369,7 +377,7 @@ pcie_7x_0_support_i
   .cfg_pmcsr_powerstate                      ( ),
   .cfg_pmcsr_pme_status                      ( ),
   .cfg_received_func_lvl_rst                 ( ),
-  .tx_buf_av                                 ( ),
+  .tx_buf_av                                 ( tx_buf_av),  // DMA extension
   .tx_err_drop                               ( ),
   .tx_cfg_req                                ( ),
   .cfg_to_turnoff                            ( cfg_to_turnoff ),
@@ -566,10 +574,20 @@ pcie_app_7x  #(
   .pl_upstream_prefer_deemph      ( pl_upstream_prefer_deemph ),
 
   .cfg_interrupt                  ( cfg_interrupt ),
+
   .cfg_interrupt_assert           ( cfg_interrupt_assert ),
   .cfg_interrupt_di               ( cfg_interrupt_di ),
   .cfg_interrupt_stat             ( cfg_interrupt_stat ),
-  .cfg_pciecap_interrupt_msgnum   ( cfg_pciecap_interrupt_msgnum )
+  .cfg_pciecap_interrupt_msgnum   ( cfg_pciecap_interrupt_msgnum ),
+
+  .tx_buf_av                       ( tx_buf_av ),  // DMA extension
+  .cfg_interrupt_rdy              ( cfg_interrupt_rdy ),  // DMA extension
+
+         // ADC Interface
+    .adc_data(adc_data),
+    .adc_data_en(adc_data_en),
+
+    .adc_data_clk(adc_data_clk)  // 125MHz
 
 );
 

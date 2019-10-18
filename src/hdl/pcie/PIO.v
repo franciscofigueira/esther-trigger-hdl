@@ -82,7 +82,6 @@ module PIO #(
   output                        s_axis_tx_tvalid,
   output                        tx_src_dsc,
 
-
   input  [C_DATA_WIDTH-1:0]     m_axis_rx_tdata,
   input  [KEEP_WIDTH-1:0]       m_axis_rx_tkeep,
   input                         m_axis_rx_tlast,
@@ -94,8 +93,18 @@ module PIO #(
   input                         cfg_to_turnoff,
   output                        cfg_turnoff_ok,
 
-  input [15:0]                  cfg_completer_id
+  output                          cfg_interrupt,
 
+  input [15:0]                  cfg_completer_id,
+
+  // DMA extension
+  input  [5:0]                  tx_buf_av,
+  input                         cfg_interrupt_rdy,
+
+ // ADC Interface
+   input   [63:0] adc_data,
+   input   adc_data_en,
+   input   adc_data_clk
 ); // synthesis syn_hier = "hard"
 
 
@@ -132,6 +141,8 @@ module PIO #(
     .s_axis_tx_tvalid( s_axis_tx_tvalid ),        // O
     .tx_src_dsc( tx_src_dsc ),                    // O
 
+    .tx_buf_av(tx_buf_av),                        // I
+
     .m_axis_rx_tdata( m_axis_rx_tdata ),          // I
     .m_axis_rx_tkeep( m_axis_rx_tkeep ),          // I
     .m_axis_rx_tlast( m_axis_rx_tlast ),          // I
@@ -142,7 +153,17 @@ module PIO #(
     .req_compl(req_compl),                        // O
     .compl_done(compl_done),                      // O
 
-    .cfg_completer_id ( cfg_completer_id )        // I [15:0]
+    .cfg_interrupt( cfg_interrupt ),
+    .cfg_interrupt_rdy( cfg_interrupt_rdy ),
+
+    .cfg_completer_id ( cfg_completer_id ),        // I [15:0]
+
+     // ADC Interface
+    .adc_data(adc_data),
+    .adc_data_en(adc_data_en),
+
+    .adc_data_clk(adc_data_clk)  // 125MHz
+
   );
 
 
@@ -165,4 +186,3 @@ module PIO #(
 
 
 endmodule // PIO
-
