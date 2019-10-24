@@ -11,7 +11,7 @@
 // This disclaimer is not a license and does not grant any
 // rights to the materials distributed herewith. Except as
 // otherwise provided in a valid license issued to you by
-// Xilinx, and to the maximum extent permitted by applicable
+// Xilinx, and to the maximum extent permitted by applicable  output 		[63:0]  trigger_level,
 // law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
 // WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
 // AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
@@ -36,7 +36,7 @@
 // systems, Class III medical devices, nuclear facilities,
 // applications related to the deployment of airbags, or any
 // other applications that could lead to death, personal
-// injury, or severe property or environmental damage
+// injury, or severe property or environmental damage  output 		[63:0]  trigger_level,
 // (individually and collectively, "Critical
 // Applications"). Customer assumes the sole risk and
 // liability of any use of Xilinx products in Critical
@@ -51,7 +51,7 @@
 // File       : PIO.v
 // Version    : 3.3
 //
-// Description:  Programmed I/O module. Design implements 8 KBytes of programmable
+// Description:  Programmed I/O module. Design implements 8 KBytes of programmable  output 		[63:0]  trigger_level,
 //--              memory space. Host processor can access this memory space using
 //--              Memory Read 32 and Memory Write 32 TLPs. Design accepts
 //--              1 Double Word (DW) payload length on Memory Write 32 TLP and
@@ -101,6 +101,9 @@ module PIO #(
   input  [5:0]                  tx_buf_av,
   input                         cfg_interrupt_rdy,
 
+  input  		[23:0] trigger_status,
+  output 		[31:0]  control_reg,
+  output 		[63:0]  trigger_level,
  // ADC Interface
    input   [63:0] adc_data,
    input   adc_data_en,
@@ -157,6 +160,10 @@ module PIO #(
     .cfg_interrupt_rdy( cfg_interrupt_rdy ),
 
     .cfg_completer_id ( cfg_completer_id ),        // I [15:0]
+
+    .trigger_status(trigger_status),
+    .control_reg(control_reg),
+    .trigger_level(trigger_level),
 
      // ADC Interface
     .adc_data(adc_data),

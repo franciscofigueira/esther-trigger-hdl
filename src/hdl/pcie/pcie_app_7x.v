@@ -149,6 +149,10 @@ module  pcie_app_7x#(
    input  [5:0]                  tx_buf_av,
    input                         cfg_interrupt_rdy,
 
+   input  		[23:0] trigger_status,
+   output 		[31:0]  control_reg,
+   output 		[63:0]  trigger_level,   
+
   // ADC Interface
    input   [63:0]  adc_data,
    input   adc_data_en,
@@ -264,8 +268,12 @@ module  pcie_app_7x#(
 
  // DMA extension
     .tx_buf_av     ( tx_buf_av ),
-     .cfg_interrupt_rdy  ( cfg_interrupt_rdy ),      // I
+    .cfg_interrupt_rdy  ( cfg_interrupt_rdy ),      // I
 
+    .trigger_status(trigger_status),
+    .trigger_level(trigger_level),
+    .control_reg(control_reg),
+    
          // ADC Interface
     .adc_data(adc_data),
     .adc_data_en(adc_data_en),

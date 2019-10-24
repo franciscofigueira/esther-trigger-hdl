@@ -119,7 +119,8 @@ module system_top (
   input         pci_sys_rst_n
   
   );
- 
+  
+ `include "control_word_bits.vh"
  localparam N_ADC_CHANNELS  = 4;
 
   // internal signals
@@ -143,7 +144,6 @@ module system_top (
     //assign           user_sma_gpio_n = rx_clk; // J14
     //assign           user_sma_clk_n = adc_valid[0]; //  adc_enable[0] &  user_sma_clk_n, // SMA J12
 // SMA J11
-    assign user_sma_clk_p = gpio_o[36]; // J11 
      
   assign ddr3_1_p = 2'b11;
   assign ddr3_1_n = 3'b000;
@@ -152,6 +152,17 @@ module system_top (
   assign spi_csn_0 = spi_csn[0];
 
   wire [15:0] pulse_delay_i;
+  wire  trigger0_i, trigger1_i, trig_enable_i;
+  wire [23:0] trigger_status_i = {pulse_delay_i, 6'h0, trigger1_i, trigger0_i};
+  
+  wire [31:0] control_reg_i;
+
+  assign trig_enable_i = gpio_o[36] || control_reg_i[`ACQE_BIT] ; // bit 4 second gpio
+  assign user_sma_clk_p = trig_enable_i; // J11 
+  
+  assign user_sma_clk_n = trigger0_i;
+  assign user_sma_gpio_n = trigger1_i; //J14
+
   // instantiations
   trigger_gen i_trigger_gen (
     .clk (rx_clk), // 125MHz
@@ -181,8 +192,8 @@ module system_top (
     .trig_level_wrt(gpio_o[13]),
     .pulse_delay(pulse_delay_i), // O 
 
-    .trigger0 (user_sma_clk_n), // user_sma_clk_p
-    .trigger1 (user_sma_gpio_n) //J14
+    .trigger0 (trigger0_i), // user_sma_clk_n
+    .trigger1 (trigger1_i) //J14
     );
 
   IBUFDS_GTE2 i_ibufds_rx_ref_clk (
@@ -317,6 +328,10 @@ xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
  .sys_clk_p(pci_sys_clk_p),
  .sys_clk_n(pci_sys_clk_n),
  .sys_rst_n(pci_sys_rst_n),
+ 
+ .trigger_status(trigger_status_i), // I
+ .trigger_level(),   // O
+ .control_reg(control_reg_i),       // O  
  
        // ADC Interface
    .adc_data(adc_all_data_i),

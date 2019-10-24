@@ -99,6 +99,9 @@ module PIO_EP #(
     // DMA extension
   input  [5:0]                  tx_buf_av,
   input                         cfg_interrupt_rdy,
+  input  		[23:0] trigger_status,
+  output 		[31:0]  control_reg,
+  output 		[63:0]  trigger_level,
 
  // ADC Interface
   input   [63:0]   adc_data,
@@ -132,7 +135,8 @@ module PIO_EP #(
     wire  [7:0]       req_be;
     wire  [12:0]      req_addr;
 
-    wire [31:0] status_reg, dma_status, control_reg, dma_ha_ch0; // From Pcie regs
+    wire [31:0] status_reg,  control_reg_i, dma_ha_ch0; // From Pcie regs
+    wire [7:0] dma_status;
     wire [20:0] dma_size_i;
 
     wire  [31:0]    dma_host_addr_tx;
@@ -142,9 +146,11 @@ module PIO_EP #(
     wire dma_tlp_req, dma_tlp_compl_done;
     wire [63:0]  data_ch0;
     wire fifo_rd_en;
+    assign control_reg = control_reg_i;
 
+    assign status_reg ={trigger_status, dma_status};
 
-PIO_EP_SHAPI_REGS  #(
+   PIO_EP_SHAPI_REGS  #(
         .TCQ( TCQ )
     ) EP_REGS_inst (
 
@@ -166,7 +172,8 @@ PIO_EP_SHAPI_REGS  #(
         .wr_busy(wr_busy),      // O
 
         .status_reg(status_reg),  // I
-        .control_reg(control_reg), // O
+        .control_reg(control_reg_i), // O
+        .trigger_level(trigger_level),
         .dma_size(dma_size_i), // O [20:0]
         .dma_ha_ch0(dma_ha_ch0), // O
         .dma_ha_ch1() // O
@@ -285,7 +292,7 @@ PIO_EP_SHAPI_REGS  #(
         .cfg_interrupt    (cfg_interrupt),      // O
         .cfg_interrupt_rdy (cfg_interrupt_rdy), // I
 
-        .control_reg(control_reg[30:20]),     // I [30:20]
+        .control_reg(control_reg_i[30:20]),     // I [30:20]
         .dma_status(dma_status),       // O [7:0]
         .dma_compl_acq(1'b0),  // I dma_compl_acq
         .dma_size(dma_size_i), // I [31:0]
@@ -301,8 +308,8 @@ PIO_EP_SHAPI_REGS  #(
         //.dma_pkt_cnt(dma_pkt_cnt), // O
         .adc_data_clk(adc_data_clk),       // I
         .data_in_ch0(adc_data),        // I
-        .data_valid_ch0(data_valid_ch0),       // I
-        .data_ready_ch0(data_ready_ch0) //O
+        .data_valid_ch0(adc_data_en),       // I
+        .data_ready_ch0() //O data_ready_ch0
 );
 
 

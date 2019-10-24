@@ -41,9 +41,9 @@
 
 //#### STANDARD DEVICE REGISTERS ######//
 `define ENDIAN_DMA_BIT     		8 //Endianness of DMA data words  (0:little , 1: Big Endian)
-`define CHOP_ON_BIT          	10 // State of Chop, if equals 1 chop is ON if 0 it is OFF
-`define CHOP_DEFAULT_BIT    	11 // Value of Chop case CHOP_STATE is 0
-`define CHOP_RECONSTRUCT_BIT  	12 // State of Chop Recontruction, if equals 1 chop is ON if 0 it is OFF
+//`define CHOP_ON_BIT          	10 // State of Chop, if equals 1 chop is ON if 0 it is OFF
+//`define CHOP_DEFAULT_BIT    	11 // Value of Chop case CHOP_STATE is 0
+//`define CHOP_RECONSTRUCT_BIT  	12 // State of Chop Recontruction, if equals 1 chop is ON if 0 it is OFF
 //`define OFFSET_CALC = 13; //
 //`define INT_CALC            = 14; // Output Integral Values
 //`define DAC_SHFT_BITS       = 15; // DAC MUX command (4 bits)

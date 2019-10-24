@@ -70,7 +70,7 @@ module PIO_EP_SHAPI_REGS  #(
 
     status_reg,     // I
     control_reg,    // O
-    //eo_offset,      // O
+    trigger_level,  // O
     //dma_compl_acq,  // O
     //dma_status,     // I
     dma_size, // O [20:0]  DMA Byte Size
@@ -100,8 +100,8 @@ module PIO_EP_SHAPI_REGS  #(
     //DMA port
     input  		[31:0]  status_reg;
     output 		[31:0]  control_reg;
-    //output 	   [575:0]  eo_offset;
-    //output                dma_compl_acq;
+    output 	    [63:0]  trigger_level;  // Four channels * 16 bit
+    //output                 dma_compl_acq;
     //input  		[7:0]  dma_status;
     output 		[20:0]  dma_size;
     //output 		[20:0]  dma_prog_thresh;
@@ -157,7 +157,7 @@ module PIO_EP_SHAPI_REGS  #(
     localparam  MOD_INTERRUPT_ACTIVE = 32'h0;     //offset_addr 0x38
 
     reg   [31:0]     control_r ; //, chopp_period_r;
-    //reg   [575:0]    eo_offset_r;
+    reg   [63:0]     trigger_level_r;
     reg   [20:0]     dma_size_r;
     //reg   [20:5]     dma_prog_thresh_r;
     reg   [31:0]     dma_address_regs[0:7]; // array of  32-bit registers
@@ -171,7 +171,7 @@ module PIO_EP_SHAPI_REGS  #(
     assign dma_size = dma_size_r;
     //assign dma_prog_thresh = dma_prog_thresh_r;
     assign control_reg =  control_r;
-    //assign eo_offset   =  eo_offset_r;
+    assign trigger_level  =  trigger_level_r;
 
     // Memory Write Process
     //  Extract current data bytes. These need to be swizzled
@@ -293,7 +293,7 @@ module PIO_EP_SHAPI_REGS  #(
             dev_scratch_reg <= #TCQ 32'hBB;
             dev_control_r   <= 32'h0;
             control_r       <= #TCQ 32'h00;
-            //eo_offset_r     <= #TCQ 0;
+            trigger_level_r <= #TCQ 0;
             dma_size_r      <= #TCQ 0;
             for (reg_idx = 0; reg_idx < 8; reg_idx = reg_idx + 1)
                 dma_address_regs[reg_idx] <= 0;
@@ -332,6 +332,11 @@ module PIO_EP_SHAPI_REGS  #(
                     (`MOD_DMA_REG_OFF +	11'h026): dma_address_regs[6]   <= post_wr_data;
                     (`MOD_DMA_REG_OFF +	11'h027): dma_address_regs[7]   <= post_wr_data;
                     (`MOD_DMA_REG_OFF +	11'h028): dma_address_ch1_reg  <= post_wr_data;
+
+                    (`MOD_DMA_REG_OFF +	11'h030): trigger_level_r[15:0]     <= post_wr_data[15:0];
+                    (`MOD_DMA_REG_OFF + 11'h031): trigger_level_r[31:16]    <= post_wr_data[15:0];
+                    (`MOD_DMA_REG_OFF + 11'h032): trigger_level_r[47:32]    <= post_wr_data[15:0];
+                    (`MOD_DMA_REG_OFF + 11'h033): trigger_level_r[63:48]    <= post_wr_data[15:0];
 
                     //BAR 1 addresses
                     //      11'200 :   <= post_wr_data;

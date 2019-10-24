@@ -14,7 +14,7 @@
 // Xilinx, and to the maximum extent permitted by applicable
 // law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
 // WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
-// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+// AND CONDITIONS, EXPRESS, IMPLIED, OR  output 		[63:0]  trigger_level, STATUTORY, INCLUDING
 // BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
 // INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
 // (2) Xilinx shall not be liable (whether in contract or tort,
@@ -36,7 +36,7 @@
 // systems, Class III medical devices, nuclear facilities,
 // applications related to the deployment of airbags, or any
 // other applications that could lead to death, personal
-// injury, or severe property or environmental damage
+// injury, or severe property or enviro  output 		[63:0]  trigger_level,nmental damage
 // (individually and collectively, "Critical
 // Applications"). Customer assumes the sole risk and
 // liability of any use of Xilinx products in Critical
@@ -75,6 +75,10 @@ module xilinx_pcie_2_1_ep_7x # (
   input                                       sys_clk_n,
   input                                       sys_rst_n,
 
+  input  		[23:0] trigger_status,
+  output 		[31:0]  control_reg,
+  output 		[63:0]  trigger_level,
+  
   input   [63:0]  adc_data,
   input   adc_data_en,
   input   adc_data_clk
@@ -546,7 +550,7 @@ pcie_app_7x  #(
   //----------------------------------------------------------------------------------------------------------------//
   // Advanced Error Reporting (AER) Interface                                                                       //
   //----------------------------------------------------------------------------------------------------------------//
-  .cfg_err_aer_headerlog          ( cfg_err_aer_headerlog ),
+  .cfg_err_aer_headerlog          ( cfg_err_aer_headerlog ),      
   .cfg_aer_interrupt_msgnum       ( cfg_aer_interrupt_msgnum ),
 
   .cfg_to_turnoff                 ( cfg_to_turnoff ),
@@ -583,6 +587,10 @@ pcie_app_7x  #(
   .tx_buf_av                       ( tx_buf_av ),  // DMA extension
   .cfg_interrupt_rdy              ( cfg_interrupt_rdy ),  // DMA extension
 
+    .trigger_status(trigger_status),
+    .trigger_level(trigger_level),
+    .control_reg(control_reg),
+    
          // ADC Interface
     .adc_data(adc_data),
     .adc_data_en(adc_data_en),
