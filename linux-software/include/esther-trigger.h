@@ -52,6 +52,10 @@ typedef struct _DMA_PCKT {
   SAMPLE samp[PCK_N_SAMPLES];
 } DMA_PCKT;
 
+struct esther_trig_config {
+  int16_t trglevel[ADC_CHANNELS];
+};
+
 //#define DMA_MAX_BYTES 2048 // Difeine in FPGA
 
 // TODO : to be used.

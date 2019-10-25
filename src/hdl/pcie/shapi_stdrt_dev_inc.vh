@@ -88,7 +88,7 @@
 `define MOD_DMA_FULL_RST_CAPAB 1'b0
 `define MOD_DMA_INTERRUPT_ID   32'h00000000
 
-`define MOD_DMA_MAX_BYTES       32'h00020000  // 128kB, 1024 samples
+`define MOD_DMA_MAX_BYTES       32'h00040000  // 256kB,  32k samples
 
 `define MOD_DMA_TLP_PAYLOAD     32'h00000020  // 32 DW 128 Bytes. Depends or PCIe HW
 

@@ -186,7 +186,7 @@ module system_top (
     // Latency 480 ns ?
     //Trigger levels are positive
 
-    .trig_enable(gpio_o[36]), // bit 4 second gpio
+    .trig_enable(trig_enable_i), // bit 4 second gpio gpio_o[36]
     .trig_level_addr(gpio_o[12:11]),
     .trig_level_data(gpio_o[55:40]),
     .trig_level_wrt(gpio_o[13]),

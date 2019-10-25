@@ -37,10 +37,12 @@ long _unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 
   int err = 0, retval = 0;
   unsigned long flags = 0;
-  u32 tmp;
+  u32 tmp, i;
+  int32_t ival;
   COMMAND_REG cReg;
   STATUS_REG sReg;
   PCIE_DEV *pciDev; /* for device information */
+  struct esther_trig_config trg_obj;
 
   u32 byteSize;
 
@@ -241,6 +243,23 @@ case ESTHER_TRG_IOCG_COUNTER:
     cReg.reg32 = PCIE_READ32((void *)&pciDev->pModDmaHregs->dmaControl);
     cReg.cmdFlds.StreamE = 0;
     PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
+    // ----- ----- DEVICE SPECIFIC CODE ----- -----
+    spin_unlock_irqrestore(&pciDev->irq_lock, flags);
+    break;
+
+  case ESTHER_TRG_IOCS_TRIG_CONFIG:
+    if (copy_from_user((void *)&trg_obj, (void *)arg,
+                       sizeof(struct esther_trig_config))) {
+      /*pr_err("copy_from_user failed.\n");*/
+      return -EFAULT;
+    }
+    spin_lock_irqsave(&pciDev->irq_lock, flags);
+    // ----- ----- DEVICE SPECIFIC CODE ----- -----
+    for (i = 0; i < ADC_CHANNELS; i++) {
+      ival = trg_obj.trglevel[i];
+      PDEBUG("ioctl trig_level Reg:%d, off: %d", i, ival);
+      PCIE_WRITE32(ival, (void *)&pciDev->pModDmaHregs->trigConfig[i]);
+    }
     // ----- ----- DEVICE SPECIFIC CODE ----- -----
     spin_unlock_irqrestore(&pciDev->irq_lock, flags);
     break;

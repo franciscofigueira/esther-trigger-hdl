@@ -138,7 +138,7 @@ typedef struct _SHAPI_MOD_DMA_HREGS {
   volatile u32 dmaBusAddr[8];      /* Offset 0x80 rw */
   volatile u32 dmaPollBusAddr;     /* Offset 0xA0 rw */
   volatile u32 _reserved3[7];      /* Offset 0xA4 na */
-  volatile u32 eoOffsets[32];      /* Offset 0xC0 rw */
+  volatile u32 trigConfig[4];      /* Offset 0xC0 rw */
 
   ////  EVENT_REGS                timingRegs[NUM_TIMERS];
 } SHAPI_MOD_DMA_HREGS;
