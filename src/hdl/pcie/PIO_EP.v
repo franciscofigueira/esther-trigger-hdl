@@ -271,7 +271,7 @@ module PIO_EP #(
 
 
     .dma_data(dma_data), // I  [63:0]
-    .dma_host_addr(), // I [31:0]dma_host_addr_tx
+    .dma_host_addr(dma_host_addr_tx), // I [31:0]
     .dma_tlp_req(dma_tlp_req),  // I
     .dma_tlp_compl_done(dma_tlp_compl_done), // O
     .fifo_rd_en(fifo_rd_en),  // O
@@ -292,7 +292,7 @@ module PIO_EP #(
         .cfg_interrupt    (cfg_interrupt),      // O
         .cfg_interrupt_rdy (cfg_interrupt_rdy), // I
 
-        .control_reg(control_reg_i[30:20]),     // I [30:20]
+        .control_reg(control_reg_i),     // I [31:0]
         .dma_status(dma_status),       // O [7:0]
         .dma_compl_acq(1'b0),  // I dma_compl_acq
         .dma_size(dma_size_i), // I [31:0]
@@ -307,8 +307,8 @@ module PIO_EP #(
         .dma_tlp_compl_done(dma_tlp_compl_done),  //I
         //.dma_pkt_cnt(dma_pkt_cnt), // O
         .adc_data_clk(adc_data_clk),       // I
-        .data_in_ch0(adc_data),        // I
-        .data_valid_ch0(adc_data_en),       // I
+        .adc_data(adc_data),        // I adc_data [31:0]
+        .adc_data_en(adc_data_en),       // I
         .data_ready_ch0() //O data_ready_ch0
 );
 

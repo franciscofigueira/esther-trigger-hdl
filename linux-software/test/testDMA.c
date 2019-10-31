@@ -47,40 +47,43 @@
 
 char DEVNAME[] = "/dev/esther_trg_0";
 /*
-void get_data(int32_t *pAdcDataWr, void *dmaBuff) {
-  DMA_PCKT *pdma = (DMA_PCKT *)dmaBuff;
-  for (int s = 0; s < PCK_N_SAMPLES; s++) {
-    for (int j = 0; j < ADC_CHANNELS; j++)
-      *pAdcDataWr++ = pdma->samp[s].channel[j].adc_data;
-  }
-}
-*/
+   void get_data(int32_t *pAdcDataWr, void *dmaBuff) {
+   DMA_PCKT *pdma = (DMA_PCKT *)dmaBuff;
+   for (int s = 0; s < PCK_N_SAMPLES; s++) {
+   for (int j = 0; j < ADC_CHANNELS; j++)
+ *pAdcDataWr++ = pdma->samp[s].channel[j].adc_data;
+ }
+ }
+ */
 
 int main(int argc, char **argv) {
 
-  int i, rc, fd;
+  int rc, fd;
   char *devn;
   int flags = 0;
   FILE *fdi;
   // for data
-  unsigned int Npackets = 1;
+  /*unsigned int Npackets = 1;*/
   unsigned int noSave = 0;
   void *dmaBuff;
-  int32_t *pAdcData;
-  int32_t *pAdcDataWr;
-
+  /*int32_t *pAdcData;*/
+  /*int32_t *pAdcDataWr;*/
+  u_int32_t uval32;
   int32_t dmaSize;
 
   if (argc > 2)
     devn = argv[2];
   else
     devn = DEVNAME;
+
   if (argc > 1) {
     noSave = atoi(argv[1]);
-  } else {
-    printf("%s  [nosave [dev_name]]\n", argv[0]);
-    return -1;
   }
+  /*printf("argc %d, noSave %d \n", argc, noSave);*/
+  /*else {*/
+  /*printf("%s  [nosave [dev_name]]\n", argv[0]);*/
+  /*return -1;*/
+  /*}*/
   flags |= O_RDONLY;
   printf("opening device\t");
   extern int errno;
@@ -102,7 +105,11 @@ int main(int argc, char **argv) {
 
   dmaBuff = malloc(dmaSize);
   rc = ioctl(fd, ESTHER_TRG_IOCT_ACQ_ENABLE);
+  rc = ioctl(fd, ESTHER_TRG_IOCT_DMA_ENABLE);
   usleep(1000);
+  rc = read(fd, dmaBuff, dmaSize); //  one read.
+  printf("read OK: %d \n", rc);
+
 #ifdef NOCOMPILE
   rc = read(fd, dmaBuff, dmaSize); // loop read.
   /*memcpy(pAdcDataWr, dmaBuff, saveSize);*/
@@ -121,30 +128,32 @@ int main(int argc, char **argv) {
      */
   /*    for (ii = 0; ii < 16; ii++) {
         printf("%d d:%X, ", ii, dmaBuff[ii]);
-      }
-      printf("\n");
-      for (ii = 0; ii < 10; ii++) {
+        }
+        printf("\n");
+        for (ii = 0; ii < 10; ii++) {
         printf("0x%08X, ", dmaBuff[32 * ii + 1]);
-      }
-      printf(" \n");*/
+        }
+        printf(" \n");*/
 }
-rc = ioctl(fd, ATCA_PCIE_IOCT_ACQ_DISABLE);
-printf("read OK: %d Npackets %d \n", rc, Npackets);
 
-fdi = fopen("dataDMA.bin", "wb"); /*Test if can open files to write */
-pAdcDataWr = pAdcData;
-
-for (i = 0; i < Npackets; i++) {
-  fwrite(pAdcDataWr, 1, saveSize, fdi);
-  pAdcDataWr += dmaSize / sizeof(int32_t);
-}
-fclose(fdi);
-free(dmaBuff);
 free(pAdcData);
 //    printf("Acquired %d packets, %d samples, chanNumb: %d\n", Npackets,
 //    SAMP_PER_PACKET * Npackets, chanNumb );
 #endif
+
+rc = ioctl(fd, ESTHER_TRG_IOCT_DMA_DISABLE);
+usleep(10000);
 rc = ioctl(fd, ESTHER_TRG_IOCT_ACQ_DISABLE);
+rc = ioctl(fd, ESTHER_TRG_IOCG_STATUS, &uval32);
+
+printf("dmaStatus: 0x%X\n", uval32);
+
+if (noSave == 0) {
+  fdi = fopen("dataDMA.bin", "wb");
+  fwrite(dmaBuff, 1, dmaSize, fdi);
+  fclose(fdi);
+}
+free(dmaBuff);
 close(fd);
 
 return 0;

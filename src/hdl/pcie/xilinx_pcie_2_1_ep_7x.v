@@ -74,7 +74,8 @@ module xilinx_pcie_2_1_ep_7x # (
   input                                       sys_clk_p,
   input                                       sys_clk_n,
   input                                       sys_rst_n,
-
+  
+  output        user_clk_o, 
   input  		[23:0] trigger_status,
   output 		[31:0]  control_reg,
   output 		[63:0]  trigger_level,
@@ -200,7 +201,8 @@ module xilinx_pcie_2_1_ep_7x # (
 
   IBUFDS_GTE2 refclk_ibuf (.O(sys_clk), .ODIV2(), .I(sys_clk_p), .CEB(1'b0), .IB(sys_clk_n));
 
-
+ assign user_clk_o = user_clk;
+ 
   always @(posedge user_clk) begin
     user_reset_q  <= user_reset;
     user_lnk_up_q <= user_lnk_up;

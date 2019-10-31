@@ -156,8 +156,23 @@ module system_top (
   wire [23:0] trigger_status_i = {pulse_delay_i, 6'h0, trigger1_i, trigger0_i};
   
   wire [31:0] control_reg_i;
+  wire  control_acqe_i, pcie_user_clk;
 
-  assign trig_enable_i = gpio_o[36] || control_reg_i[`ACQE_BIT] ; // bit 4 second gpio
+    xpm_cdc_single #(
+    .DEST_SYNC_FF(2), // DECIMAL; range: 2-10
+    .INIT_SYNC_FF(0), // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+    .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+    .SRC_INPUT_REG(1) // DECIMAL; 0=do not register input, 1=register input
+    )
+    xpm_cdc_single_inst (
+    .dest_out(control_acqe_i), // 1-bit output: src_in synchronized to the destination clock domain. This output is
+    // registered.
+    .dest_clk(rx_clk), // 1-bit input: Clock signal for the destination clock domain.
+    .src_clk(pcie_user_clk), // 1-bit input: optional; required when SRC_INPUT_REG = 1
+    .src_in(control_reg_i[`ACQE_BIT]) // 1-bit input: Input signal to be synchronized to dest_clk domain.
+    );
+
+  assign trig_enable_i = gpio_o[36] || control_acqe_i; //control_reg_i[`ACQE_BIT] ; // bit 4 second gpio
   assign user_sma_clk_p = trig_enable_i; // J11 
   
   assign user_sma_clk_n = trigger0_i;
@@ -332,8 +347,9 @@ xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
  .trigger_status(trigger_status_i), // I
  .trigger_level(),   // O
  .control_reg(control_reg_i),       // O  
+ .user_clk_o(pcie_user_clk),       // O  
  
-       // ADC Interface
+     // ADC Interface
    .adc_data(adc_all_data_i),
    .adc_data_en(adc_all_data_en),
    

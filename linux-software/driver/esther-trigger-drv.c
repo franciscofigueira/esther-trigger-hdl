@@ -548,7 +548,6 @@ int _probe(struct pci_dev *pdev, const struct pci_device_id *id) {
   PCIE_DEV *pcieDev = NULL;
   //  STATUS_REG sReg;
   COMMAND_REG cReg;
-  /*u32 _minor;*/
   void *bar0_vaddr;
   void *bar1_vaddr;
   union {
@@ -669,7 +668,6 @@ int _probe(struct pci_dev *pdev, const struct pci_device_id *id) {
 
   spin_lock_init(&pcieDev->irq_lock);
   init_waitqueue_head(&pcieDev->rd_q);
-  /*_minor = 0; // TODO Change*/
   pcieDev->devno = MKDEV(device_major, dev_minor);
 
   cdev_init(&pcieDev->cdev, &ctrl_fops);
@@ -714,7 +712,7 @@ int _probe(struct pci_dev *pdev, const struct pci_device_id *id) {
          ioread32((void *)&pcieDev->pModDmaHregs->dmaStatus));
   PDEBUG("Mod dmaControl 0x%08x\n",
          ioread32((void *)&pcieDev->pModDmaHregs->dmaControl));
-  dev_minor += 3;
+  dev_minor += 2;
   return 0;
 }
 
@@ -781,6 +779,7 @@ void _remove(struct pci_dev *pdev) {
   pci_clear_mwi(pdev);
   pci_disable_device(pdev);
   printk(KERN_NOTICE "%s removed. \n", DRV_NAME);
+  dev_minor -= 2;
   return;
 }
 

@@ -1,0 +1,13 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+#Vivado
+src/ip/*
+*.jou
+*.log
+*.str
+
+linux-software/test/*

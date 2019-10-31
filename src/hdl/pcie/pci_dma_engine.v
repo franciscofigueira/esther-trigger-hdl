@@ -56,7 +56,7 @@ module pci_dma_engine #(
     input		  cfg_interrupt_rdy,
 
     //registers interface
-    input   [30:20]  control_reg,
+    input   [31:0]  control_reg,
     output  [7:0]   dma_status,
     input           dma_compl_acq, // No need for MSI irq
     input   [20:0]  dma_size, // in Bytes. MAX size 1 MB = 8k / 4k / 2k TLPs
@@ -76,9 +76,9 @@ module pci_dma_engine #(
 
     //DMA irq input data channel
     input           adc_data_clk, 	//I - clk_100
-    input [63:0]    data_in_ch0,
+    input [63:0]    adc_data,
     output          data_ready_ch0,
-    input           data_valid_ch0
+    input           adc_data_en
     //input [511:0]   data_in_ch1,
     //output          data_ready_ch1,
     //input           data_valid_ch1
@@ -349,7 +349,7 @@ module pci_dma_engine #(
     wire wr_rst_busy, rd_rst_busy;
     //wr_en/rd_en should not be toggled when reset (rst) or wr_rst_busy or rd_rst_busy is asserted.
     wire wr_en_ch0, rd_en_ch0;
-    assign wr_en_ch0 = (wr_rst_busy)? 1'b0: data_valid_ch0;
+    assign wr_en_ch0 = (wr_rst_busy)? 1'b0: adc_data_en;
     assign rd_en_ch0 = (rd_rst_busy)? 1'b0: fifo_irq_rd_i;
 
 `define __XPM_FIFO__
@@ -427,7 +427,7 @@ module pci_dma_engine #(
         // the number of words written into the FIFO.
         .wr_rst_busy(wr_rst_busy), // 1-bit output: Write Reset Busy: Active-High indicator that the FIFO
         // write domain is currently in a reset state.
-        .din(data_in_ch0), // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
+        .din(adc_data), // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
         // writing the FIFO.
         .injectdbiterr(1'b0), // 1-bit input: Double Bit Error Injection: Injects a double bit error if
         // the ECC feature is used on block RAMs or UltraRAM macros.
@@ -458,7 +458,7 @@ module pci_dma_engine #(
         .rst(dma_fifo_arst),
         .wr_clk(adc_data_clk),
         .wr_en(wr_en_ch0),//
-        .din(data_in_ch0), // adc_data   512b = 64 Bytes
+        .din(adc_data), // adc_data   512b = 64 Bytes
         .rd_clk(pcie_user_clk),
         .rd_en(rd_en_ch0 ),
         .dout(fifo_data_out),  // PCIe 64b, 8B
