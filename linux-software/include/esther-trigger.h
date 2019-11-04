@@ -22,8 +22,8 @@
 
 #ifndef __KERNEL__
 //#define u32 unsigned int
-#include "atca-v2-pcie-ioctl.h"
-#include <pthread.h>
+//#include "atca-v2-pcie-ioctl.h"
+//#include <pthread.h>
 #include <stdint.h>
 #include <sys/time.h>
 #include <time.h>

@@ -117,6 +117,7 @@ long _unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
     pciDev->max_buffer_count = 0;
     atomic_set(&pciDev->rd_condition, 0);
     cReg.cmdFlds.AcqE = 1;
+    /*cReg.cmdFlds.STrg = 0;*/
     PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
     spin_unlock_irqrestore(&pciDev->irq_lock, flags);
     break;
@@ -128,7 +129,7 @@ long _unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
     // ----- ----- ----- -----
     cReg.reg32 = PCIE_READ32((void *)&pciDev->pModDmaHregs->dmaControl);
     cReg.cmdFlds.AcqE = 0;
-    //    cReg.cmdFlds.STRG=0;
+    cReg.cmdFlds.STrg = 0;
     PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
     // ----- ----- ----- ----- ----- ----- DEVICE SPECIFIC CODE ----- -----
     // ----- ----- ----- -----
@@ -191,23 +192,15 @@ case ESTHER_TRG_IOCG_COUNTER:
       pciDev->wt_tmout = tmp * HZ;
     break;
 
-    /**
-     ** Not used yet in this Board
-
   case ESTHER_TRG_IOCT_SOFT_TRIG:
     spin_lock_irqsave(&pciDev->irq_lock, flags);
-    // ----- ----- ----- ----- ----- ----- DEVICE SPECIFIC CODE ----- -----
-  -----
-  ----- ----- -----
-    cReg.reg32=PCIE_READ32((void*) &pciDev->pHregs->command);
-    cReg.cmdFlds.STRG=1;
-    PCIE_WRITE32(cReg.reg32, (void*) &pciDev->pHregs->command);
-    // ----- ----- ----- ----- ----- ----- DEVICE SPECIFIC CODE ----- -----
-  -----
-  ----- ----- -----
+    // ---- ----- -----  DEVICE SPECIFIC CODE -----  ----- -----
+    cReg.reg32 = PCIE_READ32((void *)&pciDev->pModDmaHregs->dmaControl);
+    cReg.cmdFlds.STrg = 1;
+    PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
+    // ----- ----- ----- DEVICE SPECIFIC CODE ----- -----
     spin_unlock_irqrestore(&pciDev->irq_lock, flags);
     break;
-     */
 
   case ESTHER_TRG_IOCS_DMA_SIZE:
     retval = __get_user(tmp, (int __user *)arg);
@@ -226,17 +219,16 @@ case ESTHER_TRG_IOCG_COUNTER:
     if (copy_to_user((void __user *)arg, &tmp, sizeof(u32)))
       return -EFAULT;
     break;
-
-  case ESTHER_TRG_IOCT_STREAM_ENABLE:
-    spin_lock_irqsave(&pciDev->irq_lock, flags);
-    // ----- ----- DEVICE SPECIFIC CODE ----- -----
-    cReg.reg32 = PCIE_READ32((void *)&pciDev->pModDmaHregs->dmaControl);
-    cReg.cmdFlds.StreamE = 1;
-    PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
-    // ----- ----- DEVICE SPECIFIC CODE ----- -----
-    spin_unlock_irqrestore(&pciDev->irq_lock, flags);
-    break;
-
+    /*
+      case ESTHER_TRG_IOCT_STREAM_ENABLE:
+        spin_lock_irqsave(&pciDev->irq_lock, flags);
+        // ----- ----- DEVICE SPECIFIC CODE ----- -----
+        cReg.reg32 = PCIE_READ32((void *)&pciDev->pModDmaHregs->dmaControl);
+        cReg.cmdFlds.StreamE = 1;
+        PCIE_WRITE32(cReg.reg32, (void *)&pciDev->pModDmaHregs->dmaControl);
+        // ----- ----- DEVICE SPECIFIC CODE ----- -----
+        spin_unlock_irqrestore(&pciDev->irq_lock, flags);
+        break;
   case ESTHER_TRG_IOCT_STREAM_DISABLE:
     spin_lock_irqsave(&pciDev->irq_lock, flags);
     // ----- ----- DEVICE SPECIFIC CODE ----- -----
@@ -246,6 +238,7 @@ case ESTHER_TRG_IOCG_COUNTER:
     // ----- ----- DEVICE SPECIFIC CODE ----- -----
     spin_unlock_irqrestore(&pciDev->irq_lock, flags);
     break;
+    */
 
   case ESTHER_TRG_IOCS_TRIG_CONFIG:
     if (copy_from_user((void *)&trg_obj, (void *)arg,

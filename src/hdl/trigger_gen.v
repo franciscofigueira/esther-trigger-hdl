@@ -61,9 +61,10 @@ module trigger_gen #(
     input adc_valid_d,
     
     input trig_enable,  // Enable/Reset State Machine
-    input  [1:0]   trig_level_addr,
-    input  trig_level_wrt, // registers write enable
-    input  [15:0] trig_level_data,
+    input  [47:0] trig_level_arr, // 3 trigger levels
+    //input  [1:0]   trig_level_addr,
+    //input  trig_level_wrt, // registers write enable
+    //input  [15:0] trig_level_data,
 
     output [15:0] pulse_delay,  // Diference Pulse_0 -> Pulse_1 
     output trigger0,
@@ -127,10 +128,14 @@ endfunction
     
 	reg  trigger1_r = 0;
     assign trigger1 = trigger1_r; 
-
+/*
     reg  signed [15:0]  trig_level_a_reg=0;       
     reg  signed [15:0]  trig_level_b_reg=0;       
-    reg  signed [15:0]  trig_level_c_reg=0;       
+    reg  signed [15:0]  trig_level_c_reg=0;   
+ */   
+    wire  signed [15:0]  trig_level_a = trig_level_arr[15:0]; 
+    wire  signed [15:0]  trig_level_b = trig_level_arr[31:16]; 
+    wire  signed [15:0]  trig_level_c = trig_level_arr[47:32];         
     
      reg [15:0] pulse_delay_r;
      assign pulse_delay = pulse_delay_r;
@@ -154,8 +159,8 @@ endfunction
           state <= IDLE;
           trigger0_r  <=  0; 
           trigger1_r  <=  0; 
-          wait_cnt <= 24'd250000; //* 8ns Initial Idle Time  = 2 ms , Max 16777215 134 ms
-          pulse_delay_r  <=  16'hA5; 
+          wait_cnt <= 24'd37000; //* 8ns Initial Idle Time  = 0.3 ms , Max 16777215 134 ms
+          pulse_delay_r  <=  16'hFFFF; 
       
        end
        else
@@ -168,42 +173,47 @@ endfunction
                    state <= READY;
              end
              READY: begin // Armed: Waiting first pulse
-                if (trigger_rising_eval_f(adc_mean_a, trig_level_a_reg)) begin 
+                if (trigger_rising_eval_f(adc_mean_a, trig_level_a)) begin 
                    state <= PULSE0;
+                   trigger0_r  <=  1'b1; 
                 end   
-                trigger0_r  <=  1'b1; 
-                trigger1_r  <=  0; 
+    //            trigger1_r  <=  0; 
                 wait_cnt <= 0;
              end
              PULSE0 : begin // Got first pulse. Waiting Second
-                trigger0_r <=  1'b0; 
-                //if (trigger_eval_f(adc_mean_b, {trig_level_b, 4'h0})) begin
-                if (trigger_falling_eval_f(adc_mean_b, trig_level_b_reg)) begin // Testing  negative edge of input b
+      //          trigger0_r <=  1'b0; 
+//                if (trigger_falling_eval_f(adc_mean_b, trig_level_b_reg)) begin // Testing  negative edge of input b
+               
+                if (trigger_falling_eval_f(adc_mean_b, trig_level_b)) begin // Testing  negative edge of input b
                     state <= PULSE1;
                     pulse_delay_r  <=  wait_cnt[15:0]; // Save waiting Time
                 end
                 else 
-                    wait_cnt   <=  wait_cnt + 8'd5; // Multiply delay by 5
+                    wait_cnt   <=  wait_cnt + 8'd5; // increase 5 time units
              end
-             PULSE1 : begin   // Got second pulse. Waiting calculated delay
-                trigger1_r <=  1'b1; 
-                wait_cnt <= wait_cnt - 1;
-                if (wait_cnt == {WAIT_WIDTH{1'b0}})
-                   state <= PULSE2;
+             PULSE1 : begin   // Waiting Third Pulse 
+                if (trigger_rising_eval_f(adc_mean_a, trig_level_c)) begin 
+                    trigger1_r <=  1'b1; 
+                    state <= PULSE2;
+                end   
              end
-             PULSE2 : begin   // Waiting Pulse 2
-                trigger1_r <=  1'b0; 
-                if (trigger_rising_eval_f(adc_mean_c, trig_level_c_reg))  
+             PULSE2 : begin   // Got Third pulse. Waiting calculated delay
+                if (wait_cnt == {WAIT_WIDTH{1'b0}}) begin
+                   trigger1_r <=  1'b0; 
                    state <= TRIGGER;
+                end
+                else
+                    wait_cnt <= wait_cnt - 1;
              end
              TRIGGER : begin // End Trigger
-                trigger1_r <=  1'b1; 
+                trigger0_r <=  1'b1; 
  //                    state <= IDLE;
              end
              default :  
                      state <= IDLE;
           endcase
 
+/*
 // Write Trigger Level Registers
    always @(posedge clk)
         if (trig_level_wrt)
@@ -215,6 +225,6 @@ endfunction
                     //                    2'b11:
                     default : ;  
                  endcase
-                           
+    */                       
 	
 endmodule

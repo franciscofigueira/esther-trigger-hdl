@@ -79,11 +79,12 @@ typedef struct _COMMAND_REG {
   union {
     u32 reg32;
     struct {
-      u32 Dma1 : 1, Dma2 : 1, rsv0 : 18,
-          StreamE : 1, //  off 20
-          rsv01 : 2,
+      u32 Dma1 : 1, Dma2 : 1, rsv0 : 21,
+          //          StreamE : 1, //  off 20
+          //          rsv01 : 2,
           AcqE : 1, //  off 23
-          rsv1 : 3, DmaE : 1, DmaRst : 1, rsv2 : 1, DmaIntE : 1, rsv3 : 1;
+          STrg : 1, //  off 24
+          rsv1 : 2, DmaE : 1, DmaRst : 1, rsv2 : 1, DmaIntE : 1, rsv3 : 1;
     } cmdFlds;
   };
 } COMMAND_REG;

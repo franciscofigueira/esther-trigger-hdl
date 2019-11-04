@@ -154,9 +154,29 @@ module system_top (
   wire [15:0] pulse_delay_i;
   wire  trigger0_i, trigger1_i, trig_enable_i;
   wire [23:0] trigger_status_i = {pulse_delay_i, 6'h0, trigger1_i, trigger0_i};
+  wire [63:0] trigger_level_i;
+  wire [47:0] trigger_level_cdc;
   
   wire [31:0] control_reg_i;
   wire  control_acqe_i, pcie_user_clk;
+
+xpm_cdc_array_single #(
+.DEST_SYNC_FF(2), // DECIMAL; range: 2-10
+.INIT_SYNC_FF(0), // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+.SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+.SRC_INPUT_REG(1), // DECIMAL; 0=do not register input, 1=register input
+.WIDTH(48) // DECIMAL; range: 1-1024
+)
+xpm_cdc_array_single_inst (
+.dest_out(trigger_level_cdc), // WIDTH-bit output: src_in synchronized to the destination clock domain. This
+// output is registered.
+.dest_clk(rx_clk), // 1-bit input: Clock signal for the destination clock domain.
+.src_clk(pcie_user_clk), // 1-bit input: optional; required when SRC_INPUT_REG = 1
+.src_in(trigger_level_i[47:0]) // WIDTH-bit input: Input single-bit array to be synchronized to destination clock
+// domain. It is assumed that each bit of the array is unrelated to the others. This
+// is reflected in the constraints applied to this macro. To transfer a binary value
+// losslessly across the two clock domains, use the XPM_CDC_GRAY macro instead.
+);
 
     xpm_cdc_single #(
     .DEST_SYNC_FF(2), // DECIMAL; range: 2-10
@@ -172,8 +192,8 @@ module system_top (
     .src_in(control_reg_i[`ACQE_BIT]) // 1-bit input: Input signal to be synchronized to dest_clk domain.
     );
 
-  assign trig_enable_i = gpio_o[36] || control_acqe_i; //control_reg_i[`ACQE_BIT] ; // bit 4 second gpio
-  assign user_sma_clk_p = trig_enable_i; // J11 
+  assign trig_enable_i = control_acqe_i; // gpio_o[36] || bit 4 second gpio
+  assign user_sma_clk_p = control_reg_i[`STRG_BIT] ;//Laer /generator; Trigger // J11 
   
   assign user_sma_clk_n = trigger0_i;
   assign user_sma_gpio_n = trigger1_i; //J14
@@ -202,13 +222,14 @@ module system_top (
     //Trigger levels are positive
 
     .trig_enable(trig_enable_i), // bit 4 second gpio gpio_o[36]
-    .trig_level_addr(gpio_o[12:11]),
-    .trig_level_data(gpio_o[55:40]),
-    .trig_level_wrt(gpio_o[13]),
+    .trig_level_arr(trigger_level_cdc), //I [47:0]
+    //.trig_level_addr(gpio_o[12:11]),
+    //.trig_level_data(gpio_o[55:40]),
+    //.trig_level_wrt(gpio_o[13]),
     .pulse_delay(pulse_delay_i), // O 
 
     .trigger0 (trigger0_i), // user_sma_clk_n
-    .trigger1 (trigger1_i) //J14
+    .trigger1 (trigger1_i) //J14trigger0_i
     );
 
   IBUFDS_GTE2 i_ibufds_rx_ref_clk (
@@ -325,12 +346,13 @@ module system_top (
     .spi_sdo_i (spi_mosi),
     .spi_sdo_o (spi_mosi));
 
-    wire [63:0] adc_all_data_i;
+    wire [63:0] adc_dma_data_i;
 
-    assign adc_all_data_i[31:0]     = adc_data[0];
-    assign adc_all_data_i[63:32]    = adc_data[1];
+    assign adc_dma_data_i[31:0]     = adc_data[0];
+    assign adc_dma_data_i[63:32]    = adc_data[1];
 
-    wire  adc_all_data_en = adc_enable[0];
+    //wire  adc_dma_data_en = adc_enable[0];
+    wire  adc_dma_data_en = adc_enable[0] && trigger0_i; //&& adc_valid[0] Write DMA FIFO only after trigger 0 
 
 //PCIE
 
@@ -345,13 +367,13 @@ xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
  .sys_rst_n(pci_sys_rst_n),
  
  .trigger_status(trigger_status_i), // I
- .trigger_level(),   // O
+ .trigger_level(trigger_level_i),   // O
  .control_reg(control_reg_i),       // O  
  .user_clk_o(pcie_user_clk),       // O  
  
      // ADC Interface
-   .adc_data(adc_all_data_i),
-   .adc_data_en(adc_all_data_en),
+   .adc_data(adc_dma_data_i),
+   .adc_data_en(adc_dma_data_en),
    
    .adc_data_clk(rx_clk)  // 125MHz
 

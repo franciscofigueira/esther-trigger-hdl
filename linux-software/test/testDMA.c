@@ -41,6 +41,7 @@
 /*#include <math.h>*/
 //#include <signal.h>
 #include "esther-trigger-ioctl.h"
+#include "esther-trigger.h"
 #include <string.h>
 
 /*#define ACQ_SIZE (8 * 1024) // 2048*/
@@ -58,7 +59,7 @@ char DEVNAME[] = "/dev/esther_trg_0";
 
 int main(int argc, char **argv) {
 
-  int rc, fd;
+  int rc, fd, i;
   char *devn;
   int flags = 0;
   FILE *fdi;
@@ -68,8 +69,9 @@ int main(int argc, char **argv) {
   void *dmaBuff;
   /*int32_t *pAdcData;*/
   /*int32_t *pAdcDataWr;*/
-  u_int32_t uval32;
+  u_int32_t dStat;
   int32_t dmaSize;
+  struct esther_trig_config esther_cfg;
 
   if (argc > 2)
     devn = argv[2];
@@ -100,12 +102,21 @@ int main(int argc, char **argv) {
   rc = ioctl(fd, ESTHER_TRG_IOCG_DMA_SIZE, &dmaSize);
   printf("dmaSize: %d \n", dmaSize); //
 
+  for (i = 0; i < ADC_CHANNELS; i++)
+    esther_cfg.trglevel[i] = 0;
+  esther_cfg.trglevel[0] = 5000;
+  esther_cfg.trglevel[1] = -6000;
+  esther_cfg.trglevel[2] = 6000;
+  rc = ioctl(fd, ESTHER_TRG_IOCS_TRIG_CONFIG, &esther_cfg);
+
   rc = ioctl(fd, ESTHER_TRG_IOCT_DMA_RESET);
   rc = ioctl(fd, ESTHER_TRG_IOCT_INT_ENABLE);
 
   dmaBuff = malloc(dmaSize);
+  rc = ioctl(fd, ESTHER_TRG_IOCT_SOFT_TRIG);
   rc = ioctl(fd, ESTHER_TRG_IOCT_ACQ_ENABLE);
   rc = ioctl(fd, ESTHER_TRG_IOCT_DMA_ENABLE);
+
   usleep(1000);
   rc = read(fd, dmaBuff, dmaSize); //  one read.
   printf("read OK: %d \n", rc);
@@ -142,11 +153,11 @@ free(pAdcData);
 #endif
 
 rc = ioctl(fd, ESTHER_TRG_IOCT_DMA_DISABLE);
-usleep(10000);
+usleep(20000);
+rc = ioctl(fd, ESTHER_TRG_IOCG_STATUS, &dStat);
+printf("dmaStatus: 0x%X, delay %u, %f us\n", dStat, dStat >> 16,
+       (dStat >> 16) * 0.008 / 5.0);
 rc = ioctl(fd, ESTHER_TRG_IOCT_ACQ_DISABLE);
-rc = ioctl(fd, ESTHER_TRG_IOCG_STATUS, &uval32);
-
-printf("dmaStatus: 0x%X\n", uval32);
 
 if (noSave == 0) {
   fdi = fopen("dataDMA.bin", "wb");
