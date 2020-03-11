@@ -107,6 +107,21 @@ function  trigger_falling_eval_f;
     end 
 endfunction
 
+
+parameter delay=100;
+function timing_calculation;
+     input [31:0] timer1;
+     input [31:0] timer2;
+     input [31:0] count;
+     
+       reg [31:0] avg_time;
+       begin
+         avg_time=(timer1+timer2)>>1;
+      
+         timing_calculation=((avg_time-delay) >= count)?1'b1:1'b0;
+     end
+     
+ endfunction     
 /*********** End Function Declarations ***************/
 
 /************ Trigger Logic ************/
@@ -153,7 +168,7 @@ endfunction
  
     // (* mark_debug = "true" *) 
     reg [2:0] state = IDLE;
-     
+  /*   
     always @(posedge clk)
        if (!trig_enable) begin
           state <= IDLE;
@@ -184,7 +199,7 @@ endfunction
       //          trigger0_r <=  1'b0; 
 //                if (trigger_falling_eval_f(adc_mean_b, trig_level_b_reg)) begin // Testing  negative edge of input b
                
-                if (trigger_falling_eval_f(adc_mean_b, trig_level_b)) begin // Testing  negative edge of input b
+                if (trigger_falling_eval_f(adc_mean_a, trig_level_b)) begin // Testing  negative edge of input b
                     state <= PULSE1;
                     pulse_delay_r  <=  wait_cnt[15:0]; // Save waiting Time
                 end
@@ -207,6 +222,75 @@ endfunction
              end
              TRIGGER : begin // End Trigger
                 trigger0_r <=  1'b1; 
+ //                    state <= IDLE;
+             end
+             default :  
+                     state <= IDLE;
+          endcase
+*/
+
+reg [31:0] wait_cnt2=0,counter=0;
+
+ always @(posedge clk)
+       if (!trig_enable) begin
+          state <= IDLE;
+          trigger0_r  <=  0; 
+          trigger1_r  <=  0; 
+          wait_cnt <= 24'd37000; //* 8ns Initial Idle Time  = 0.3 ms , Max 16777215 134 ms
+          pulse_delay_r  <=  16'hFFFF; 
+      
+       end
+       else
+          case (state)
+             IDLE: begin        // Sleeping 
+                trigger0_r  <=  0; 
+                trigger1_r  <=  0; 
+                wait_cnt <= wait_cnt - 1;
+                if (wait_cnt == {WAIT_WIDTH{1'b0}})
+                   state <= READY;
+             end
+             READY: begin // Armed: Waiting first pulse
+                if (trigger_rising_eval_f(adc_mean_a, trig_level_a)) begin 
+                   state <= PULSE0;
+                   trigger0_r  <=  1'b1; 
+                end   
+    //            trigger1_r  <=  0; 
+                wait_cnt <= 0;
+             end
+             PULSE0 : begin // Got first pulse. Waiting Second
+      //          trigger0_r <=  1'b0; 
+//                if (trigger_falling_eval_f(adc_mean_b, trig_level_b_reg)) begin // Testing  negative edge of input b
+               
+                if (trigger_rising_eval_f(adc_mean_b, trig_level_a))begin // Testing  negative edge of input b
+                    state <= PULSE1;
+                    pulse_delay_r  <=  wait_cnt[15:0];  // Save waiting Time
+                    wait_cnt2 <= 'b0;
+                end
+                else 
+                    wait_cnt   <=  wait_cnt + 8'd5; // increase 5 time units
+             end
+             PULSE1 : begin   // Waiting Third Pulse 
+                if (trigger_rising_eval_f(adc_mean_c, trig_level_c)) begin 
+                    trigger1_r <=  1'b0; 
+                    state <= PULSE2;
+                    counter<='b0;
+                    
+                end  
+               wait_cnt2<=wait_cnt2+8'd5;
+             
+                 
+             end
+             PULSE2 : begin   // Got Third pulse. Waiting calculated delay
+                if (wait_cnt == counter) begin
+                   trigger1_r <=  1'b0; 
+                   state <= TRIGGER;
+                end
+                else
+                    counter<=counter+8'd5;
+             end
+             TRIGGER : begin // End Trigger
+                trigger0_r <=  1'b1; 
+                trigger1_r <=  1'b1;
  //                    state <= IDLE;
              end
              default :  

@@ -140,7 +140,7 @@ module pci_dma_engine #(
 
     assign fifo_irq_rd_i = (dma_ch_sel_r)? 1'b0 : fifo_rd_en;
     wire  fifo_1_rd_i    = (dma_ch_sel_r)? fifo_rd_en : 1'b0;
-    wire prog_full_ch0;
+    wire prog_full_ch0, prog_almost_full;
     (* mark_debug="yes" *)  wire prog_empty_ch0;
     //(* mark_debug="yes" *)  wire  fifo_empty_i;
     //(* mark_debug="yes" *)  wire  fifo_full_i;
@@ -328,7 +328,7 @@ module pci_dma_engine #(
     );
 */
 // xpm_cdc_sync_rst: Synchronous Reset Synchronizer
-    // // Xilinx Parameterized Macro, version 2019.1
+    // // Xilinx Paraprog_full_cmeterized Macro, version 2019.1
 	 xpm_cdc_sync_rst #(
 	 .DEST_SYNC_FF(4), // DECIMAL; range: 2-10
 	 .INIT(0), // DECIMAL; 0=initialize synchronization registers to 0, 1=initialize synchronization
@@ -352,6 +352,86 @@ module pci_dma_engine #(
     assign wr_en_ch0 = (wr_rst_busy)? 1'b0: adc_data_en;
     assign rd_en_ch0 = (rd_rst_busy)? 1'b0: fifo_irq_rd_i;
 
+wire [16:0] wr_data_cnt_ch0;
+ wire read_en_n;
+/*
+//assign read_en_n=(adc_data_en)?fifo_irq_rd_i:((prog_full_ch0)?1'b1:1'b0);
+reg rd_en_n, buff;
+always  @(posedge pcie_user_clk)begin
+if(prog_full_ch0==1'b1 && adc_data_en==1'b0) {rd_en_n,buff}<={buff,1'b1};
+else if(prog_full_ch0==1'b0 && adc_data_en==1'b0) {rd_en_n,buff}<={buff,1'b0};
+else if(adc_data_en){rd_en_n,buff}<={buff,fifo_irq_rd_i};
+
+end
+*/
+reg read_en,buff1,write_en,buff2;
+reg [1:0] state1, n_state;
+always @(*) begin
+case (state1)
+   2'b00: begin
+   if(wr_data_cnt_ch0 > 1050) n_state<=2'b01;
+   //{write_en,buff2}<={buff2,1'b1};
+  // {read_en,buff1}<={buff1,1'b0};
+   //write_en<=1'b1;
+   //read_en<=1'b0;
+   end
+   2'b01: begin
+   if(wr_data_cnt_ch0 <1000 && adc_data_en==1'b0) n_state<=2'b00;
+   else if(adc_data_en==1'b1) n_state<=2'b10;
+  // {write_en,buff2}<={buff2,1'b0};
+  // {read_en,buff1}<={buff1,1'b1};
+  // write_en<=1'b0;
+   //read_en<=1'b1;
+   end
+   2'b10:begin
+   if(dmach0_en_i == 1'b0)n_state<=2'b00;
+   //write_en<=1'b1;
+   //read_en<=fifo_irq_rd_i;
+   //{write_en,buff2}<={buff2,1'b1};
+   //{read_en,buff1}<={buff1,fifo_irq_rd_i};
+   end
+   default: n_state<=2'b00;
+   endcase
+end
+always @(posedge pcie_user_clk) state1<=n_state;
+
+wire read_en_m, write_en_m;
+mux3 rmu(.sel(state1),
+.a(1'b0),
+.b(1'b1),
+.c(rd_en_ch0),
+.out(read_en_m)
+);
+
+mux3 wmu(.sel(state1),
+.a(1'b1),
+.b(1'b1),
+.c(wr_en_ch0),
+.out(write_en_m)
+);
+
+
+
+fifo_generator_0(
+ .rst (dma_fifo_srst),
+    .wr_clk (adc_data_clk),
+    .rd_clk (pcie_user_clk),
+    .din (adc_data),
+    .wr_en (write_en_m),
+    .rd_en (read_en_m),
+    .dout (fifo_data_out),
+    .full (),
+    .almost_full (prog_almost_full),
+    .empty (),
+    .almost_empty (),
+    .wr_data_count (wr_data_cnt_ch0 ),
+    .prog_full (prog_full_ch0),
+    .prog_empty (prog_empty_ch0),
+    .wr_rst_busy (wr_rst_busy),
+    .rd_rst_busy (rd_rst_busy)
+);
+
+/*
 `define __XPM_FIFO__
 `ifdef  __XPM_FIFO__
 
@@ -364,10 +444,10 @@ module pci_dma_engine #(
         .ECC_MODE("no_ecc"), // String
         .FIFO_MEMORY_TYPE("block"), // String
         .FIFO_READ_LATENCY(0), // DECIMAL If READ_MODE = "fwft", then the only applicable value is 0.
-        .FIFO_WRITE_DEPTH(32768), // DECIMAL,  FIFO_READ_DEPTH = 16384:128us 
+        .FIFO_WRITE_Dpcie_user_clkEPTH(32768), // DECIMAL,  FIFO_READ_DEPTH = 16384:128us 
         .FULL_RESET_VALUE(0), // DECIMAL Sets full, almost_full and prog_full during reset
         .PROG_EMPTY_THRESH(32), //Max_Value=(FIFO_WRITE_DEPTH-3)-(READ_MODE_VAL*2), error in UG953? should be Max=FIFO_READ_DEPTH - ...? One 32DW TLP is 16 rd
-        .PROG_FULL_THRESH(32700), // DECIMAL PROG_FULL_THRESH value must be between .
+        .PROG_FULL_THRESH(5000), // DECIMAL PROG_FULL_THRESH value must be between .
         //.RD_DATA_COUNT_WIDTH(7), // DECIMAL log2(FIFO_READ_DEPTH)+1
         .READ_DATA_WIDTH(64), // DECIMAL
         .READ_MODE("fwft"), // String READ_MODE_VAL = 1
@@ -378,15 +458,15 @@ module pci_dma_engine #(
         //    Setting USE_ADV_FEATURES[2] to 1 enables wr_data_count; Default value of this bit is 1
         //    Setting USE_ADV_FEATURES[9]  to 1 enables prog_empty flag;   Default value of this bit is 1
         .WAKEUP_TIME(0), // DECIMAL Disable Sleep
-        .WRITE_DATA_WIDTH(64) // DECIMAL
-        //.WR_DATA_COUNT_WIDTH(4) // DECIMAL the width should be log2(FIFO_WRITE_DEPTH)+1.
+        .WRITE_DATA_WIDTH(64), // DECIMAL
+        .WR_DATA_COUNT_WIDTH(16) // DECIMAL the width should be log2(FIFO_WRITE_DEPTH)+1.
     )
-    dma_fifo_0 (
+    dma_fifo_0 (fmcjesdadc1
         .almost_empty(), // 1-bit output: Almost Empty : When asserted, this signal indicates that
         // only one more read can be performed before the FIFO goes to empty.
-        .almost_full(), // 1-bit output: Almost Full: When asserted, this signal indicates that
+        .almost_full(prog_almost_full), // 1-bit output: Almost Full: When asserted, this signal indicates that
         // only one more write can be performed before the FIFO is full.
-        .data_valid(), // 1-bit output: Read Data Valid: When asserted, this signal indicates
+        .data_valid(), /prog_full_ch0/ 1-bit output: Read Data Valid: When asserted, this signal indicates
         // that valid data is available on the output bus (dout).
         //.dbiterr(dbiterr), // 1-bit output: Double Bit Error: Indicates that the ECC decoder detected
         // a double-bit error and data in the FIFO core is corrupted.
@@ -396,7 +476,7 @@ module pci_dma_engine #(
         // FIFO is empty. Read requests are ignored when the FIFO is empty,
         // initiating a read while empty is not destructive to the FIFO.
         .full(), // 1-bit output: Full Flag: When asserted, this signal indicates that the
-        // FIFO is full. Write requests are ignored when the FIFO is full,
+        // FIFO isdma_fifo_srst full. Write requests are ignored wh/home/francisco/tmp/hdl/projects/fmcjesdadc1/kc705/esther-trigger-hdl/src/hdl/pcieen the FIFO is full,
         // initiating a write when the FIFO is full is not destructive to the
         // contents of the FIFO.
         .overflow(), // 1-bit output: Overflow: This signal indicates that a write request
@@ -414,10 +494,10 @@ module pci_dma_engine #(
         .rd_data_count(), // RD_DATA_COUNT_WIDTH-bit output: Read Data Count: This bus indicates the
         // number of words read from the FIFO.
         .rd_rst_busy(rd_rst_busy), // 1-bit output: Read Reset Busy: Active-High indicator that the FIFO read
-        // domain is currently in a reset state.
+        // domainadc_data_clk is currently in a reset state.
         .sbiterr(), // 1-bit output: Single Bit Error: Indicates that the ECC decoder detected
         .dbiterr(), // 1-bit output: Double Bit Error: Indicates that the ECC decoder detected
-        // and fixed a single-bit error.
+        // and fixed a singfmcjesdadc1le-bit error.
         .underflow(), // 1-bit output: Underflow: Indicates that the read request (rd_en) during
         // the previous clock cycle was rejected because the FIFO is empty. Under
         // flowing the FIFO is not destructive to the FIFO.
@@ -429,32 +509,31 @@ module pci_dma_engine #(
         // write domain is currently in a reset state.
         .din(adc_data), // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
         // writing the FIFO.
-        .injectdbiterr(1'b0), // 1-bit input: Double Bit Error Injection: Injects a double bit error if
+        .injectdbiterr(1'b0fmcjesdadc1), // 1-bit input: Double Bit Error Injection: Injects a double bit error if
         // the ECC feature is used on block RAMs or UltraRAM macros.
         .injectsbiterr(1'b0), // 1-bit input: Single Bit Error Injection: Injects a single bit error if
         // the ECC feature is used on block RAMs or UltraRAM macros.
         .rd_clk(pcie_user_clk), // 1-bit input: Read clock: Used for read operation. rd_clk must be a free
         // running clock.
-        .rd_en(rd_en_ch0), // 1-bit input: Read Enable: If the FIFO is not empty, asserting this
+        .rd_en(read_en), // 1-bit input: Read Enable: If the FIFO is not empty, asserting this
         // signal causes data (on dout) to be read from the FIFO. Must be held
         // active-low when rd_rst_busy is active high.
-        .rst(dma_fifo_srst), // 1-bit input: Reset: Must be synchronous to wr_clk. The clock(s) can be
+        .rst(dma_fifo_srst), // 1-bit input: /home/francisco/tmp/hdl/projects/fmcjesdadc1/kc705/esther-trigger-hdl/src/hdl/pcieReset: Must be synchronous to wr_clk. The clock(s) can be
         // unstable at the time of applying reset, but reset must be released only
         // after the clock(s) is/are stable.
-        .sleep(1'b0), // 1-bit input: Dynamic power saving: If sleep is High, the memory/fifo
+        .sleep(1'b0), // 1fmcjesdadc1-bit input: Dynamic power saving: If sleep is High, the memory/fifo
         // block is in power saving mode.
         .wr_clk(adc_data_clk), // 1-bit input: Write clock: Used for write operation. wr_clk must be a
         // free running clock.
-        .wr_en(wr_en_ch0) // 1-bit input: Write Enable: If the FIFO is not full, asserting this
+        .wr_en(write_en) // 1-bit input: Write Enable: If the FIFO is not full, asserting this
         // signal causes data (on din) to be written to the FIFO. Must be held
         // active-low when rst or wr_rst_busy is active high.
     );
 `else
 
-    /*Block RAM FWFT Fifo  - 256kBa */
     // Write depth ... 2047 Read depth 16373
     // Constant Full threshold 4000
-    dma_fifo dma_fifo_0 (
+    dma_fifo dma_fifo_0 (fmcjesdadc1
         .rst(dma_fifo_arst),
         .wr_clk(adc_data_clk),
         .wr_en(wr_en_ch0),//
@@ -466,12 +545,12 @@ module pci_dma_engine #(
         .full(),
         .prog_full(prog_full_ch0),
         //.prog_empty_thresh(dma_size[16:3]),// Max= (h4000-1) = 16383 (64b),  2048 * 8 = 16kB input wire [13 : 0] prog_empty_thresh h800/2048 * 8 = 16kB
-        .prog_empty(prog_empty_ch0),
+        .prog_empty(prog_/home/francisco/tmp/hdl/projects/fmcjesdadc1/kc705/esther-trigger-hdl/src/hdl/pcieempty_ch0),
         .wr_rst_busy(wr_rst_busy), // O safety circuit
         .rd_rst_busy(rd_rst_busy)  // O
     );
 
 `endif //  __XPM_FIFO__
-
+*/
 
 endmodule

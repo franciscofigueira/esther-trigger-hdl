@@ -106,20 +106,48 @@ module PIO_EP #(
  // ADC Interface
   input   [63:0]   adc_data,
   input   adc_data_en,
-  input   adc_data_clk
+  input   adc_data_clk,
+  
+  input [7:0] dma_status,
+    input cfg_interrupt_n,
+  input [7:0] dma_tlp_payload_size,
+  input [31:0] dma_host_addr_tx,
+  input [C_DATA_WIDTH-1:0] dma_data,
+  input dma_tlp_req,
+  
+  output s_axis_tx_tvalid_n,
+    output cfg_interrupt_rdy_n,
+    output fifo_rd_en,
+    output dma_tlp_compl_done,
+    output [5:0] tx_buf_av_n,
+    
+     output [10:0] rd_addr,
+     output [3:0] rd_be,
+     output [10:0] wr_addr,
+     output [7:0] wr_be,
+     output [31:0] wr_data,
+     output wr_en,
+     
+      input [31:0] rd_data,
+      input wr_busy
+  
 );
 
+assign cfg_interrupt=cfg_interrupt_n;
+assign s_axis_tx_tvalid_n=s_axis_tx_tvalid;
+assign cfg_interrupt_rdy_n=cfg_interrupt_rdy;
+assign tx_buf_av_n[5:0]=tx_buf_av[5:0];
     // Local wires
 
-    wire  [10:0]      rd_addr;
-    wire  [3:0]       rd_be;
-    wire  [31:0]      rd_data;
+ //   wire  [10:0]      rd_addr;
+  //  wire  [3:0]       rd_be;
+  //  wire  [31:0]      rd_data;
 
-    wire  [10:0]      wr_addr;
-    wire  [7:0]       wr_be;
-    wire  [31:0]      wr_data;
-    wire              wr_en;
-    wire              wr_busy;
+ //   wire  [10:0]      wr_addr;
+//    wire  [7:0]       wr_be;
+ //   wire  [31:0]      wr_data;
+ //   wire              wr_en;
+ //   wire              wr_busy;
 
     wire              req_compl_int;
     wire              req_compl_wd;
@@ -135,22 +163,30 @@ module PIO_EP #(
     wire  [7:0]       req_be;
     wire  [12:0]      req_addr;
 
+   
     wire [31:0] status_reg,  control_reg_i, dma_ha_ch0; // From Pcie regs
-    wire [7:0] dma_status;
+    
+   // wire [7:0] dma_status;
+    
+    
     wire [20:0] dma_size_i;
 
-    wire  [31:0]    dma_host_addr_tx;
-    wire  [7:0]     dma_tlp_payload_size;
-    wire [31:0] host_addr_tx;
-    wire [63:0] dma_data;
-    wire dma_tlp_req, dma_tlp_compl_done;
+  //  wire  [31:0]    dma_host_addr_tx;
+ //   wire  [7:0]     dma_tlp_payload_size;
+  //  wire [31:0] host_addr_tx;
+  //  wire [63:0] dma_data;
+   // wire dma_tlp_req;
+   
+   
+   // wire dma_tlp_compl_done;
+  
     wire [63:0]  data_ch0;
-    wire fifo_rd_en;
+ //   wire fifo_rd_en;
     assign control_reg = control_reg_i;
 
     assign status_reg ={trigger_status, dma_status};
 
-   PIO_EP_SHAPI_REGS  #(
+  /* PIO_EP_SHAPI_REGS  #(
         .TCQ( TCQ )
     ) EP_REGS_inst (
 
@@ -169,7 +205,12 @@ module PIO_EP #(
         .wr_be(wr_be),         // I [7:0]
         .wr_data(wr_data),     // I [31:0]
         .wr_en(wr_en),         // I
-        .wr_busy(wr_busy),      // O
+          .rd_addr(rd_addr),
+          .wr_addr(wr_addr),
+          .rd_be(rd_be),
+          .wr_be(wr_be),
+          .wr_data(wr_data),
+          .wr_en(wr_en).wr_busy(wr_busy),      // O
 
         .status_reg(status_reg),  // I
         .control_reg(control_reg_i), // O
@@ -178,7 +219,7 @@ module PIO_EP #(
         .dma_ha_ch0(dma_ha_ch0), // O
         .dma_ha_ch1() // O
     );
-
+*/
     //
     // Local-Link Receive Controller
     //
@@ -279,7 +320,7 @@ module PIO_EP #(
 
     );
 
-    pci_dma_engine #(
+  /*  pci_dma_engine #(
         .C_DATA_WIDTH( C_DATA_WIDTH ),
         .KEEP_WIDTH( KEEP_WIDTH ),
         .TCQ( TCQ )
@@ -312,7 +353,7 @@ module PIO_EP #(
         .data_ready_ch0() //O data_ready_ch0
 );
 
-
+*/
   assign req_compl  = req_compl_int;
   assign compl_done = compl_done_int;
 

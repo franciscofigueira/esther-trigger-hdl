@@ -11,7 +11,7 @@ set xlabel 'Samp'
 #set xlabel 'mSec'
 #set ylabel 'Amp (V)'
 set ylabel 'Amp (LSB)'
-set title 'ESTHER  DMA data 31-10-2019'
+set title 'ESTHER  DMA data 05-11-2019'
 
 dfile='dataDMA.bin'
 
@@ -42,8 +42,8 @@ endl = 1e6
 
 plot dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($1)*scaleY) with lines lt 1 lw 1  title 'ch0', \
      dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($2)*scaleY) with lines lt 1 lw 1  title 'ch0', \
-     dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($3)*scaleY) with lines lt 2 lw 1  title 'ch1', \
-     dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($3)*scaleY) with lines lt 2 lw 1  title 'ch1'
+     dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($3)*scaleY) with lines lt 2 lw 1  title 'ch2', \
+     dfile binary format='%4int16' every plot_dec::firstl:0:endl  using ($0*1):(($3)*scaleY) with lines lt 2 lw 1  title 'ch2'
 
 #set term x11
 set term wxt

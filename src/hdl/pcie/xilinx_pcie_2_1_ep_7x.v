@@ -82,7 +82,32 @@ module xilinx_pcie_2_1_ep_7x # (
   
   input   [63:0]  adc_data,
   input   adc_data_en,
-  input   adc_data_clk
+  input   adc_data_clk,
+  
+  output pio_reset,
+  input [7:0] dma_status,
+  
+  input cfg_interrupt_n,
+  input [7:0] dma_tlp_payload_size,
+  input [31:0] dma_host_addr_tx,
+  input [C_DATA_WIDTH-1:0] dma_data,
+  input dma_tlp_req,
+  
+  output s_axis_tx_tvalid_n,
+  output cfg_interrupt_rdy_n,
+  output fifo_rd_en,
+  output dma_tlp_compl_done,
+  output [5:0] tx_buf_av_n,
+  
+  output [10:0] rd_addr,
+  output [3:0] rd_be,
+  output [10:0] wr_addr,
+  output [7:0] wr_be,
+  output [31:0] wr_data,
+  output wr_en,
+  
+  input [31:0] rd_data,
+  input wr_busy
 );
 
 
@@ -597,8 +622,31 @@ pcie_app_7x  #(
     .adc_data(adc_data),
     .adc_data_en(adc_data_en),
 
-    .adc_data_clk(adc_data_clk)  // 125MHz
-
+    .adc_data_clk(adc_data_clk),  // 125MHz
+    
+   .pio_reset(pio_reset),
+   .cfg_interrupt_n(cfg_interrupt_n),
+    .dma_status(dma_status),
+    .dma_tlp_payload_size(dma_tlp_payload_size),
+    .dma_host_addr_tx(dma_host_addr_tx),
+    .dma_data(dma_data),
+    .dma_tlp_req(dma_tlp_req),
+    
+     .s_axis_tx_tvalid_n(s_axis_tx_tvalid_n),
+       .cfg_interrupt_rdy_n(cfg_interrupt_rdy_n),
+       .fifo_rd_en(fifo_rd_en),
+       .dma_tlp_compl_done(dma_tlp_compl_done),
+       .tx_buf_av_n(tx_buf_av_n),
+     
+      .rd_addr(rd_addr),
+          .wr_addr(wr_addr),
+          .rd_be(rd_be),
+          .wr_be(wr_be),
+          .wr_data(wr_data),
+          .wr_en(wr_en),
+      
+       .rd_data(rd_data),
+             .wr_busy(wr_busy) 
 );
 
 endmodule

@@ -346,15 +346,55 @@ xpm_cdc_array_single_inst (
     .spi_sdo_i (spi_mosi),
     .spi_sdo_o (spi_mosi));
 
-    wire [63:0] adc_dma_data_i;
+    wire [63:0] adc_dma_data_i, adc_dma_data_i_2, adc_dma_data_fifo;
+    
 
     assign adc_dma_data_i[31:0]     = adc_data[0];
-    assign adc_dma_data_i[63:32]    = adc_data[1];
-
+    assign adc_dma_data_i[63:32]    = adc_data[1];//adc_data[2];
+    
+    assign adc_dma_data_i_2[31:0]     = adc_data[2];
+    assign adc_dma_data_i_2[63:32]    = adc_data[3];//adc_data[2];
+   
+   mux (.clk(rx_ref_clk), //250MHz
+   .data1(adc_dma_data_i),    
+   .data2(adc_dma_data_i_2),
+   .dataf(adc_dma_data_fifo));   //change fifo input and fifo write clock
     //wire  adc_dma_data_en = adc_enable[0];
     wire  adc_dma_data_en = adc_enable[0] && trigger0_i; //&& adc_valid[0] Write DMA FIFO only after trigger 0 
 
+     
+
 //PCIE
+
+parameter TCQ        = 1;
+parameter C_DATA_WIDTH = 64;
+parameter KEEP_WIDTH = C_DATA_WIDTH / 8;
+ 
+
+ wire pio_reset;
+ 
+ //input
+ wire [10:0] rd_addr, wr_addr;
+ wire [3:0] rd_be;
+ wire [7:0] wr_be;
+ wire [31:0] wr_data;
+ wire wr_en;
+ 
+ //output
+ wire [31:0] rd_data;
+ wire wr_busy;
+
+
+//output
+wire cfg_interrupt, dma_tlp_req;
+ wire [7:0] dma_status, dma_tlp_payload_size;
+wire [31:0] dma_host_addr_tx;
+wire [C_DATA_WIDTH-1:0] dma_data;
+
+//input
+wire s_axis_tx_tvalid,cfg_interrupt_rdy,fifo_rd_en,dma_tlp_compl_done;
+wire [5:0] tx_buf_av;
+
 
 xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
  .pci_exp_txp(pci_exp_txp),
@@ -367,16 +407,114 @@ xilinx_pcie_2_1_ep_7x xilinx_pcie_i(
  .sys_rst_n(pci_sys_rst_n),
  
  .trigger_status(trigger_status_i), // I
- .trigger_level(trigger_level_i),   // O
- .control_reg(control_reg_i),       // O  
+ .trigger_level(),   // O
+ .control_reg(),       // O  
  .user_clk_o(pcie_user_clk),       // O  
  
      // ADC Interface
    .adc_data(adc_dma_data_i),
    .adc_data_en(adc_dma_data_en),
    
-   .adc_data_clk(rx_clk)  // 125MHz
+   .adc_data_clk(rx_clk),  // 125MHz
+    
+    .pio_reset(pio_reset),
+    
+   
+    .cfg_interrupt_n(cfg_interrupt),
+    .dma_status(dma_status),
+    .dma_tlp_payload_size(dma_tlp_payload_size),
+    .dma_host_addr_tx(dma_host_addr_tx),
+    .dma_data(dma_data),
+    .dma_tlp_req(dma_tlp_req),
+    
+    .s_axis_tx_tvalid_n(s_axis_tx_tvalid),
+    .cfg_interrupt_rdy_n(cfg_interrupt_rdy),
+    .fifo_rd_en(fifo_rd_en),
+    .dma_tlp_compl_done(dma_tlp_compl_done),
+    .tx_buf_av_n(tx_buf_av),
+    
+    .rd_addr(rd_addr),
+    .wr_addr(wr_addr),
+    .rd_be(rd_be),
+    .wr_be(wr_be),
+    .wr_data(wr_data),
+    .wr_en(wr_en),
+    
+    .rd_data(rd_data),
+    .wr_busy(wr_busy)
+    );
 
+
+
+ wire [20:0] dma_size_i;
+ wire [31:0] dma_ha_ch0;
+
+wire [31:0] status_reg;
+
+assign status_reg ={trigger_status_i, dma_status};
+
+
+  PIO_EP_SHAPI_REGS  #(
+        .TCQ( TCQ )
+    ) EP_REGS_inst (
+
+        .clk(pcie_user_clk),               // I   done
+        .rst_n(pio_reset),           // I     done
+ 
+        // Read Port
+
+        .rd_addr(rd_addr),     // I [10:0]
+        .rd_be(rd_be),         // I [3:0]
+        .rd_data(rd_data),     // O [31:0]
+
+        // Write Port
+
+        .wr_addr(wr_addr),     // I [10:0]
+        .wr_be(wr_be),         // I [7:0]
+        .wr_data(wr_data),     // I [31:0]
+        .wr_en(wr_en),         // I
+        .wr_busy(wr_busy),      // O
+
+        .status_reg(status_reg),  // I   done
+        .control_reg(control_reg_i), // O   done 
+        .trigger_level(trigger_level_i),   // done
+        .dma_size(dma_size_i), // O [20:0]    done
+        .dma_ha_ch0(dma_ha_ch0), // O  done
+        .dma_ha_ch1() // O
+    );
+
+
+    pci_dma_engine #(
+        .C_DATA_WIDTH( C_DATA_WIDTH ),
+        .KEEP_WIDTH( KEEP_WIDTH ),
+        .TCQ( TCQ )
+    ) pci_dma_engine_inst (
+
+        .pcie_user_clk(pcie_user_clk),                                  // I
+        .pcie_user_rst_n(pio_reset),                              // I
+        .s_axis_tx_tvalid(s_axis_tx_tvalid), //
+        .tx_buf_av(tx_buf_av),   // I [5:0]
+        .cfg_interrupt    (cfg_interrupt),      // O
+        .cfg_interrupt_rdy (cfg_interrupt_rdy), // I
+
+        .control_reg(control_reg_i),     // I [31:0]    done
+        .dma_status(dma_status),       // O [7:0]   done
+        .dma_compl_acq(1'b0),  // I dma_compl_acq     done
+        .dma_size(dma_size_i), // I [31:0]       done
+        .dma_ha_ch0(dma_ha_ch0),  // I [31:0]   done
+        //.dma_ha_ch1(dma_ha_ch1),  // I [31:0]
+
+        .dma_tlp_payload_size(dma_tlp_payload_size), // O [7:0] in DW
+        .host_addr_tx(dma_host_addr_tx),
+        .dma_data_tx(dma_data),
+        .fifo_rd_en(fifo_rd_en),  // I
+        .tlp_req(dma_tlp_req),  //O
+        .dma_tlp_compl_done(dma_tlp_compl_done),  //I
+        //.dma_pkt_cnt(dma_pkt_cnt), // O
+        .adc_data_clk(rx_clk/*rx_ref_clk*/),       // I
+        .adc_data(adc_dma_data_i/*adc_dma_data_fifo*/),        // I adc_data [63:0]
+        .adc_data_en(adc_dma_data_en),       // I
+        .data_ready_ch0() //O data_ready_ch0
 );
 
 endmodule
